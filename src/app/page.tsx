@@ -1,0 +1,116 @@
+import Link from "next/link";
+import { ArrowRight, BookOpen, Search, Sparkles } from "lucide-react";
+import { getPostsByStatus } from "@/lib/db";
+
+export default async function Home() {
+  const posts = await getPostsByStatus('published');
+  
+  return (
+    <div className="flex min-h-screen flex-col">
+      {/* Navbar */}
+      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-blue-500" />
+            <span className="font-heading font-bold text-xl tracking-tight">Chakramantra</span>
+          </Link>
+          <nav className="flex items-center gap-6 text-sm font-medium">
+            <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">Directory</Link>
+            <Link href="/about" className="transition-colors hover:text-foreground/80 text-foreground/60">About</Link>
+            <Link href="/admin" className="transition-colors hover:text-foreground/80 text-foreground/60">Admin</Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden py-24 lg:py-32">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-background to-background"></div>
+          <div className="container relative mx-auto px-4 text-center">
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-500 dark:from-zinc-100 dark:to-zinc-400 mb-6">
+              Curated intelligence <br className="hidden sm:block" /> from across the web.
+            </h1>
+            <p className="mx-auto max-w-2xl text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 mb-10">
+              Discover high-ranking, deeply researched articles across all genres. Fact-checked by AI, refined by human editors.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="#latest" className="inline-flex h-11 items-center justify-center rounded-md bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Explore Directory
+              </Link>
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <input 
+                  type="text" 
+                  placeholder="Search genres or topics..." 
+                  className="h-11 w-full sm:w-64 rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent px-10 text-sm placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Latest Publications */}
+        <section id="latest" className="py-20 bg-zinc-50 dark:bg-zinc-900/50">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-12">
+              <div>
+                <h2 className="font-heading text-3xl font-bold tracking-tight mb-2">Latest Additions</h2>
+                <p className="text-zinc-500">The newest high-signal articles added to Chakramantra.</p>
+              </div>
+              <Link href="/directory" className="hidden sm:flex items-center gap-1 text-sm font-medium text-blue-500 hover:text-blue-600">
+                View all <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {posts.map((post) => (
+                <div key={post.id} className="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 transition-all hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">
+                      {post.genre}
+                    </span>
+                    <span className="text-xs text-zinc-500">{post.readTime}</span>
+                  </div>
+                  <Link href={`/post/${post.id}`}>
+                    <h3 className="font-heading text-xl font-bold mb-3 group-hover:text-blue-500 transition-colors">
+                      {post.title}
+                    </h3>
+                  </Link>
+                  <p className="text-zinc-600 dark:text-zinc-400 mb-6 line-clamp-2">
+                    {post.summary}
+                  </p>
+                  <div className="flex items-center justify-between text-sm text-zinc-500 mt-auto">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      <span>{post.source}</span>
+                    </div>
+                    <time>{post.date}</time>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-8 flex justify-center sm:hidden">
+              <Link href="/directory" className="inline-flex items-center gap-1 text-sm font-medium text-blue-500 hover:text-blue-600">
+                View all <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-background py-12">
+        <div className="container mx-auto px-4 text-center">
+          <div className="flex justify-center items-center gap-2 mb-6">
+            <Sparkles className="h-5 w-5 text-blue-500" />
+            <span className="font-heading font-bold text-xl tracking-tight">Chakramantra</span>
+          </div>
+          <p className="text-zinc-500 text-sm">
+            © 2026 Chakramantra Directory. All rights reserved.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
