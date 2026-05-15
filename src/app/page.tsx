@@ -64,9 +64,6 @@ export default async function Home() {
                 <h2 className="font-heading text-3xl font-bold tracking-tight mb-2">Latest Additions</h2>
                 <p className="text-foreground/60">The newest high-signal articles added to Chakramantra.</p>
               </div>
-              <Link href="/directory" className="hidden sm:flex items-center gap-1 text-sm font-medium text-blue-500 hover:text-blue-600">
-                View all <ArrowRight className="h-4 w-4" />
-              </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -85,7 +82,7 @@ export default async function Home() {
                     </div>
                     {/* The Chakra Wheel */}
                     <div className="relative -top-2 -right-2 transform transition-transform duration-500 group-hover:scale-110">
-                       <ChakraWheel size={75} text="READ • EXPLORE • DISCOVER • " />
+                       <ChakraWheel size={75} />
                     </div>
                   </div>
                   

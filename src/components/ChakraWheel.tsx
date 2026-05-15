@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
 
 export default function ChakraWheel({
-  text = "CHAKRAMANTRA • DISCOVER • ",
+  text = "० १ २ ३ ४ ५ ६ ७ ८ ९ • ",
   size = 120,
 }: {
   text?: string;

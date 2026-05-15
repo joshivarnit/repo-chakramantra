@@ -14,14 +14,22 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="flex min-h-screen flex-col">
       {/* Navbar (Simplified) */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full glass border-b border-white/5 supports-[backdrop-filter]:bg-background/40">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-blue-500 hover:text-blue-600 transition-colors">
-            <Sparkles className="h-5 w-5" />
-            <span className="font-heading font-bold tracking-tight">Chakramantra</span>
+          <Link href="/" className="flex items-center gap-2">
+            <svg className="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" />
+            </svg>
+            <span className="font-heading font-bold text-xl tracking-tight">Chakramantra</span>
           </Link>
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-blue-500" />
+            <svg className="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" />
+            </svg>
             <span className="font-heading font-bold tracking-tight">Chakramantra</span>
           </div>
         </div>
@@ -36,11 +44,11 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
               </span>
             </div>
             
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-gradient inline-block">
               {post.title}
             </h1>
             
-            <p className="text-xl text-zinc-500 mb-8 leading-relaxed">
+            <p className="text-xl text-foreground/70 mb-8 leading-relaxed">
               {post.summary}
             </p>
 
@@ -71,7 +79,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div 
-            className="prose prose-zinc dark:prose-invert max-w-none prose-headings:font-heading prose-p:leading-relaxed prose-a:text-blue-500 hover:prose-a:text-blue-600"
+            className="prose prose-invert max-w-none prose-headings:font-heading prose-p:leading-relaxed prose-a:text-primary hover:prose-a:text-accent prose-img:rounded-2xl"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         </article>
