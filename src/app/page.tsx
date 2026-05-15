@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Search } from "lucide-react";
 import { getPostsByStatus } from "@/lib/db";
+import ChakraWheel from "@/components/ChakraWheel";
 
 export default async function Home() {
   const posts = await getPostsByStatus('published');
@@ -8,7 +9,7 @@ export default async function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Navbar */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full glass border-b border-white/5 supports-[backdrop-filter]:bg-background/40">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <svg className="h-6 w-6 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -29,12 +30,13 @@ export default async function Home() {
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-24 lg:py-32">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-background to-background"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-accent/20 blur-[120px] rounded-full pointer-events-none"></div>
           <div className="container relative mx-auto px-4 text-center">
-            <h1 className="font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-500 dark:from-zinc-100 dark:to-zinc-400 mb-6">
+            <h1 className="font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-gradient mb-6">
               Curated trends <br className="hidden sm:block" /> shaping the web and tech.
             </h1>
-            <p className="mx-auto max-w-2xl text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 mb-10">
+            <p className="mx-auto max-w-2xl text-lg sm:text-xl text-foreground/70 mb-10">
               Discover high-ranking, deeply researched articles and breakthrough papers. Complex topics explained simply, without losing the details. Fact-checked and refined.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -54,12 +56,13 @@ export default async function Home() {
         </section>
 
         {/* Latest Publications */}
-        <section id="latest" className="py-20 bg-zinc-50 dark:bg-zinc-900/50">
+        <section id="latest" className="py-20 relative">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-accent/5 via-background to-background pointer-events-none"></div>
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between mb-12">
               <div>
                 <h2 className="font-heading text-3xl font-bold tracking-tight mb-2">Latest Additions</h2>
-                <p className="text-zinc-500">The newest high-signal articles added to Chakramantra.</p>
+                <p className="text-foreground/60">The newest high-signal articles added to Chakramantra.</p>
               </div>
               <Link href="/directory" className="hidden sm:flex items-center gap-1 text-sm font-medium text-blue-500 hover:text-blue-600">
                 View all <ArrowRight className="h-4 w-4" />
@@ -68,22 +71,36 @@ export default async function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {posts.map((post) => (
-                <div key={post.id} className="group relative rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-6 transition-all hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-700">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-300">
-                      {post.genre}
-                    </span>
-                    <span className="text-xs text-zinc-500">{post.readTime}</span>
+                <div key={post.id} className="group relative rounded-2xl glass-card p-6 flex flex-col justify-between overflow-hidden">
+                  
+                  {/* Subtle background glow on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-accent/0 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                  <div className="relative z-10 flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-medium text-primary">
+                        {post.genre}
+                      </span>
+                      <span className="text-xs text-foreground/50">{post.readTime}</span>
+                    </div>
+                    {/* The Chakra Wheel */}
+                    <div className="relative -top-2 -right-2 transform transition-transform duration-500 group-hover:scale-110">
+                       <ChakraWheel size={75} text="READ • EXPLORE • DISCOVER • " />
+                    </div>
                   </div>
-                  <Link href={`/post/${post.id}`}>
-                    <h3 className="font-heading text-xl font-bold mb-3 group-hover:text-blue-500 transition-colors">
-                      {post.title}
-                    </h3>
-                  </Link>
-                  <p className="text-zinc-600 dark:text-zinc-400 mb-6 line-clamp-2">
-                    {post.summary}
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-zinc-500 mt-auto">
+                  
+                  <div className="relative z-10 flex-1">
+                    <Link href={`/post/${post.id}`}>
+                      <h3 className="font-heading text-xl font-bold mb-3 group-hover:text-primary transition-colors duration-300">
+                        {post.title}
+                      </h3>
+                    </Link>
+                    <p className="text-foreground/70 mb-6 line-clamp-2">
+                      {post.summary}
+                    </p>
+                  </div>
+                  
+                  <div className="relative z-10 flex items-center justify-between text-sm text-foreground/50 mt-auto">
                     <div className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
                       <span>{post.source}</span>
@@ -104,7 +121,7 @@ export default async function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-background py-12">
+      <footer className="border-t border-white/5 bg-background py-12 relative z-10">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center items-center gap-2 mb-6">
             <svg className="h-5 w-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -114,7 +131,7 @@ export default async function Home() {
             </svg>
             <span className="font-heading font-bold text-xl tracking-tight">Chakramantra</span>
           </div>
-          <p className="text-zinc-500 text-sm">
+          <p className="text-foreground/50 text-sm">
             © 2026 Chakramantra Directory. All rights reserved.
           </p>
         </div>
