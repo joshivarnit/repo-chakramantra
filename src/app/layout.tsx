@@ -14,7 +14,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Chakramantra | Premium Blog Directory",
-  description: "Curated intelligence from across the web. Discover high-ranking, deeply researched articles.",
+  description: "Curated trends shaping the web and tech. Discover high-ranking, deeply researched articles and breakthrough papers.",
 };
 
 export default function RootLayout({

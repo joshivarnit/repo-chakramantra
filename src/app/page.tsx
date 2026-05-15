@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Search, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Search } from "lucide-react";
 import { getPostsByStatus } from "@/lib/db";
 
 export default async function Home() {
@@ -11,7 +11,11 @@ export default async function Home() {
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-blue-500" />
+            <svg className="h-6 w-6 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" />
+            </svg>
             <span className="font-heading font-bold text-xl tracking-tight">Chakramantra</span>
           </Link>
           <nav className="flex items-center gap-6 text-sm font-medium">
@@ -28,10 +32,10 @@ export default async function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-background to-background"></div>
           <div className="container relative mx-auto px-4 text-center">
             <h1 className="font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-200 to-zinc-500 dark:from-zinc-100 dark:to-zinc-400 mb-6">
-              Curated intelligence <br className="hidden sm:block" /> from across the web.
+              Curated trends <br className="hidden sm:block" /> shaping the web and tech.
             </h1>
             <p className="mx-auto max-w-2xl text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 mb-10">
-              Discover high-ranking, deeply researched articles across all genres. Fact-checked by AI, refined by human editors.
+              Discover high-ranking, deeply researched articles and breakthrough papers. Complex topics explained simply, without losing the details. Fact-checked and refined.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="#latest" className="inline-flex h-11 items-center justify-center rounded-md bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -103,7 +107,11 @@ export default async function Home() {
       <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-background py-12">
         <div className="container mx-auto px-4 text-center">
           <div className="flex justify-center items-center gap-2 mb-6">
-            <Sparkles className="h-5 w-5 text-blue-500" />
+            <svg className="h-5 w-5 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" />
+            </svg>
             <span className="font-heading font-bold text-xl tracking-tight">Chakramantra</span>
           </div>
           <p className="text-zinc-500 text-sm">
