@@ -48,48 +48,52 @@ export default async function LoginPage({
   const { message } = await searchParams;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4">
-      <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 shadow-sm">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Gradients */}
+      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <div className="w-full max-w-sm glass-card rounded-2xl p-8 relative z-10">
         <div className="flex flex-col items-center mb-8">
-            <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-4">
-                <Sparkles className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            <div className="h-14 w-14 rounded-2xl glass flex items-center justify-center mb-5 rotate-3 hover:rotate-6 transition-transform">
+                <Sparkles className="h-7 w-7 text-blue-400" />
             </div>
             <div className="flex flex-col space-y-2 text-center">
-              <h1 className="font-heading text-2xl font-bold tracking-tight">Chakramantra Admin</h1>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">Sign in to access the dashboard</p>
+              <h1 className="font-heading text-2xl font-bold tracking-tight text-gradient">Chakramantra Admin</h1>
+              <p className="text-sm text-zinc-400">Sign in to access the dashboard</p>
             </div>
         </div>
 
-        <form className="space-y-4" action={login}>
-          <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="email">Email</label>
+        <form className="space-y-5" action={login}>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-300" htmlFor="email">Email</label>
             <input
               id="email"
               name="email"
               type="email"
               placeholder="you@example.com"
               required
-              className="w-full h-10 px-3 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-11 px-4 bg-black/20 border border-white/10 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
             />
           </div>
-          <div className="space-y-1">
-            <label className="text-sm font-medium" htmlFor="password">Password</label>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-300" htmlFor="password">Password</label>
             <input
               id="password"
               name="password"
               type="password"
               placeholder="••••••••"
               required
-              className="w-full h-10 px-3 bg-transparent border border-zinc-300 dark:border-zinc-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full h-11 px-4 bg-black/20 border border-white/10 rounded-lg text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all"
             />
           </div>
-          <button type="submit" className="w-full h-10 bg-foreground text-background font-medium rounded-md flex items-center justify-center gap-2 transition-colors hover:bg-foreground/90 mt-2">
+          <button type="submit" className="w-full h-11 bg-white text-black font-semibold rounded-lg flex items-center justify-center gap-2 transition-all hover:bg-zinc-200 mt-6 active:scale-[0.98] hover:shadow-[0_0_20px_rgba(255,255,255,0.3)]">
             <KeyRound className="h-4 w-4" />
             Sign In / Sign Up
           </button>
           
           {message && (
-            <div className="p-3 mt-4 text-sm text-center text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20 rounded-md">
+            <div className="p-3 mt-4 text-sm text-center text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg backdrop-blur-sm">
                 {message}
             </div>
           )}

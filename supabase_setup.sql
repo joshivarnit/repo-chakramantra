@@ -30,3 +30,25 @@ create policy "Authenticated users can manage all posts"
   to authenticated
   using (true)
   with check (true);
+
+-- 4. Create the subscribers table
+create table public.subscribers (
+  id uuid default gen_random_uuid() primary key,
+  email text unique not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 5. Enable RLS for subscribers
+alter table public.subscribers enable row level security;
+
+-- 6. Create policies for subscribers
+-- Allow anyone to insert an email
+create policy "Anyone can subscribe"
+  on public.subscribers for insert
+  with check (true);
+
+-- Allow authenticated users to read subscribers
+create policy "Authenticated users can view subscribers"
+  on public.subscribers for select
+  to authenticated
+  using (true);
