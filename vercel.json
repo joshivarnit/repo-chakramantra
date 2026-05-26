@@ -3,10 +3,6 @@
     {
       "path": "/api/cron/draft",
       "schedule": "30 9 * * *"
-    },
-    {
-      "path": "/api/cron/publish",
-      "schedule": "30 10 * * *"
     }
   ]
 }

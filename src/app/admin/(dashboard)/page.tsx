@@ -1,17 +1,30 @@
-import { getPostsByStatus, updatePostStatus } from "@/lib/db";
-import { CheckCircle2, Clock, Edit3, Eye, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { getPostsByStatus } from '@/lib/db';
+import { publishDraft, rejectDraft } from '@/app/admin/actions';
+import {
+  CheckCircle2,
+  Clock,
+  Edit3,
+  FileText,
+  PenLine,
+  XCircle,
+} from 'lucide-react';
+import Link from 'next/link';
 
-// Server action to publish a post directly
-async function publishDraft(formData: FormData) {
-  "use server";
-  const id = formData.get('id') as string;
-  if (id) {
-    await updatePostStatus(id, 'published');
-    revalidatePath('/admin');
-    revalidatePath('/');
-  }
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    draft:
+      'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300',
+    published:
+      'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300',
+    rejected: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+  };
+  return (
+    <span
+      className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${styles[status] ?? styles.draft}`}
+    >
+      {status}
+    </span>
+  );
 }
 
 export default async function AdminDashboard() {
@@ -19,116 +32,157 @@ export default async function AdminDashboard() {
   const published = await getPostsByStatus('published');
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight mb-1">Dashboard</h1>
-          <p className="text-zinc-500">Welcome back. Here is your daily content report.</p>
-        </div>
+    <div className="p-6 sm:p-8 max-w-6xl mx-auto">
+      <div className="mb-8">
+        <h1 className="font-heading text-3xl font-bold tracking-tight mb-1">Editorial dashboard</h1>
+        <p className="text-zinc-500">
+          Review AI-generated drafts, edit in the rich editor, then publish when ready.
+        </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
+            <div className="h-12 w-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <Clock className="h-6 w-6" />
             </div>
             <div>
-              <div className="text-3xl font-bold">{drafts.length}</div>
-              <div className="text-sm font-medium text-zinc-500">Pending Review</div>
+              <div className="text-3xl font-bold tabular-nums">{drafts.length}</div>
+              <div className="text-sm font-medium text-zinc-500">Awaiting review</div>
             </div>
           </div>
         </div>
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+            <div className="h-12 w-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <div>
-              <div className="text-3xl font-bold">{published.length}</div>
-              <div className="text-sm font-medium text-zinc-500">Published Posts</div>
+              <div className="text-3xl font-bold tabular-nums">{published.length}</div>
+              <div className="text-sm font-medium text-zinc-500">Live on site</div>
+            </div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 p-6 dark:border-blue-900/50 dark:bg-blue-950/20">
+          <div className="flex items-start gap-3">
+            <PenLine className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                Manual publishing
+              </p>
+              <p className="text-xs text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
+                Auto-publish is off. Every new article stays a draft until you approve it.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Drafts Needs Review */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-heading text-xl font-bold flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-500"></span>
-              Needs Review
-            </h2>
-          </div>
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="font-heading text-xl font-bold flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            Draft queue
+          </h2>
+          <Link
+            href="/admin/posts"
+            className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            View all posts →
+          </Link>
+        </div>
 
-          {drafts.length === 0 ? (
-            <div className="border border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-12 text-center text-zinc-500">
-              No drafts pending review today. The AI is still searching...
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {drafts.map(post => (
-                <div key={post.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 transition-all hover:shadow-sm">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-medium bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
-                          {post.genre}
-                        </span>
-                        <span className="text-xs text-zinc-500">{post.date}</span>
-                      </div>
-                      <h3 className="font-heading text-lg font-bold">{post.title}</h3>
+        {drafts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-14 text-center">
+            <FileText className="h-10 w-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
+            <p className="font-medium text-zinc-600 dark:text-zinc-400">No drafts in the queue</p>
+            <p className="text-sm text-zinc-500 mt-1">
+              New articles from feeds will appear here for your review.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {drafts.map((post) => (
+              <article
+                key={post.id}
+                className="group rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 transition-shadow hover:shadow-md"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <StatusBadge status="draft" />
+                      <span className="text-xs font-medium bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
+                        {post.genre}
+                      </span>
+                      <span className="text-xs text-zinc-400">{post.date}</span>
                     </div>
+                    <h3 className="font-heading text-lg font-bold mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {post.title}
+                    </h3>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                      {post.summary}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    <Link
+                      href={`/admin/edit/${post.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      Edit & review
+                    </Link>
                     <form action={publishDraft}>
                       <input type="hidden" name="id" value={post.id} />
-                      <button type="submit" className="shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
-                        Approve & Publish
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400 dark:hover:bg-emerald-950/60 transition-colors"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Quick publish
+                      </button>
+                    </form>
+                    <form action={rejectDraft}>
+                      <input type="hidden" name="id" value={post.id} />
+                      <button
+                        type="submit"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        Reject
                       </button>
                     </form>
                   </div>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 border-l-2 border-zinc-200 dark:border-zinc-700 pl-4">
-                    {post.summary}
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <Link href={`/admin/edit/${post.id}`} className="flex items-center gap-1.5 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
-                      <Edit3 className="h-4 w-4" />
-                      Edit Content
-                    </Link>
-                    <button className="flex items-center gap-1.5 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
-                      <Trash2 className="h-4 w-4" />
-                      Reject
-                    </button>
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
-        {/* Recently Published */}
-        <div>
-          <h2 className="font-heading text-xl font-bold mb-6">Recently Published</h2>
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-            {published.slice(0, 5).map((post, i) => (
-              <div key={post.id} className={`p-4 flex gap-3 ${i !== 0 ? 'border-t border-zinc-200 dark:border-zinc-800' : ''}`}>
-                <div className="h-8 w-8 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
-                  <Eye className="h-4 w-4 text-zinc-500" />
+      {published.length > 0 && (
+        <section>
+          <h2 className="font-heading text-lg font-bold mb-4">Recently published</h2>
+          <div className="rounded-2xl border border-zinc-200 bg-white overflow-hidden dark:border-zinc-800 dark:bg-zinc-900 divide-y divide-zinc-100 dark:divide-zinc-800">
+            {published.slice(0, 6).map((post) => (
+              <div key={post.id} className="flex items-center justify-between gap-4 px-5 py-4">
+                <div className="min-w-0">
+                  <p className="font-medium text-sm truncate">{post.title}</p>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    {post.date} · {post.genre}
+                  </p>
                 </div>
-                <div>
-                  <h4 className="text-sm font-bold leading-tight mb-1 line-clamp-2">
-                    <Link href={`/post/${post.id}`} className="hover:text-blue-500 transition-colors">
-                      {post.title}
-                    </Link>
-                  </h4>
-                  <div className="text-xs text-zinc-500">{post.date} &bull; {post.readTime}</div>
-                </div>
+                <Link
+                  href={`/admin/edit/${post.id}`}
+                  className="shrink-0 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Edit
+                </Link>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </section>
+      )}
     </div>
   );
 }

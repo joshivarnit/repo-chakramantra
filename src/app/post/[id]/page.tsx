@@ -7,7 +7,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const resolvedParams = await params;
   const post = await getPostById(resolvedParams.id);
 
-  if (!post) {
+  if (!post || post.status !== 'published') {
     notFound();
   }
 

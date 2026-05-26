@@ -40,8 +40,8 @@ async function sendNotifications(draftCount: number) {
       await resend.emails.send({
         from: 'Chakramantra <onboarding@resend.dev>', // Resend testing domain
         to: adminEmail,
-        subject: `[Chakramantra] ${draftCount} new drafts ready for review`,
-        html: `<p><strong>${draftCount}</strong> new articles have been drafted and are queued for publishing at 4:00 PM IST.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin">Log in to the Admin Dashboard</a> to review them.</p>`
+        subject: `[Chakramantra] ${draftCount} new draft${draftCount === 1 ? '' : 's'} ready for review`,
+        html: `<p><strong>${draftCount}</strong> new article${draftCount === 1 ? ' has' : 's have'} been saved as <strong>drafts</strong> and will not go live until you publish them.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin">Open the admin dashboard</a> to edit and publish when ready.</p>`
       });
       console.log('Email notification sent.');
     } else {
@@ -52,7 +52,7 @@ async function sendNotifications(draftCount: number) {
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER && adminPhone) {
       const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
       await client.messages.create({
-        body: `Chakramantra: ${draftCount} new drafts have been created. They will be published in 1 hour.`,
+        body: `Chakramantra: ${draftCount} new draft(s) are ready for your review. Log in to publish manually.`,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: adminPhone
       });

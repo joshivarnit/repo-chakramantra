@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #020617;
@@ -49,4 +50,57 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* WYSIWYG editor (Figma-style rich text surface) */
+.wysiwyg-editor h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.75rem;
+  line-height: 1.2;
+}
+
+.wysiwyg-editor h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+  line-height: 1.3;
+}
+
+.wysiwyg-editor h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.wysiwyg-editor p {
+  margin: 0.5rem 0;
+  line-height: 1.75;
+}
+
+.wysiwyg-editor ul,
+.wysiwyg-editor ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.wysiwyg-editor blockquote {
+  border-left: 3px solid rgb(59 130 246);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: rgb(113 113 122);
+  font-style: italic;
+}
+
+.wysiwyg-editor a {
+  color: rgb(37 99 235);
+  text-decoration: underline;
+}
+
+.wysiwyg-editor p.is-editor-empty:first-child::before {
+  color: rgb(161 161 170);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }

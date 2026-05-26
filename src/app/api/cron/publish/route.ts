@@ -1,4 +1,3 @@
-import { publishOldestDrafts } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -8,15 +7,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Phase 1: Publish exactly 3 of the oldest drafts
-    const POSTS_TO_PUBLISH = 3;
-    const publishedCount = await publishOldestDrafts(POSTS_TO_PUBLISH);
-    console.log(`Phase 1: Published ${publishedCount} drafts.`);
-
-    return NextResponse.json({ 
-      success: true, 
-      message: "Daily publish pipeline executed successfully.",
-      publishedCount,
+    // Auto-publish is disabled — articles must be published manually from the admin dashboard.
+    return NextResponse.json({
+      success: true,
+      message:
+        'Auto-publish is disabled. Publish articles manually from the admin editor.',
+      publishedCount: 0,
     });
   } catch (error: any) {
     console.error("Cron Job Publish Error:", error);
