@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import LinkNext from 'next/link';
 import EditorToolbar from './EditorToolbar';
-import { saveArticle } from '@/app/admin/actions';
+import { saveArticle } from '@/app/editor/actions';
 import type { Post } from '@/lib/db';
 
 interface ArticleEditorProps {
@@ -82,7 +82,7 @@ export default function ArticleEditor({ post }: ArticleEditorProps) {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-4 min-w-0">
             <LinkNext
-              href="/admin"
+              href="/editor"
               className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -198,7 +198,7 @@ export default function ArticleEditor({ post }: ArticleEditorProps) {
 
           <div className="flex items-center justify-between border-t border-zinc-100 px-6 py-3 text-xs text-zinc-400 dark:border-zinc-800">
             <span>{typeof wordCount === 'number' ? wordCount : 0} words</span>
-            <span>All articles stay in draft until you publish</span>
+            <span>Cron saves drafts only — publish when you are ready</span>
           </div>
         </div>
       </div>

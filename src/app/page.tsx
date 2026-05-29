@@ -24,7 +24,6 @@ export default async function Home() {
             <Link href="#latest" className="transition-colors hover:text-foreground/80 text-foreground/60 hidden sm:inline-block">Latest</Link>
             <Link href="#popular" className="transition-colors hover:text-foreground/80 text-foreground/60 hidden sm:inline-block">Trending</Link>
             <Link href="/about" className="transition-colors hover:text-foreground/80 text-foreground/60">About</Link>
-            <Link href="/admin" className="transition-colors hover:text-primary text-primary/80">Admin</Link>
           </nav>
         </div>
       </header>
@@ -37,9 +36,9 @@ export default async function Home() {
             <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-24">
               {/* Left Side: Wheel */}
               <div className="relative flex justify-center w-full lg:w-1/2 order-2 lg:order-1">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-accent/20 blur-[100px] rounded-full pointer-events-none"></div>
-                <div className="relative scale-75 sm:scale-100 origin-center transition-transform duration-500 z-10 group">
-                  <ChakraWheel size={450} posts={posts.slice(0, 10)} />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] sm:w-[700px] sm:h-[700px] bg-accent/25 blur-[120px] rounded-full pointer-events-none"></div>
+                <div className="relative scale-90 sm:scale-100 origin-center transition-transform duration-500 z-10 group">
+                  <ChakraWheel size={640} posts={posts.slice(0, 10)} />
                 </div>
               </div>
               

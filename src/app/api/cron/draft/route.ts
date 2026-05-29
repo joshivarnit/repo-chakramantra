@@ -41,7 +41,7 @@ async function sendNotifications(draftCount: number) {
         from: 'Chakramantra <onboarding@resend.dev>', // Resend testing domain
         to: adminEmail,
         subject: `[Chakramantra] ${draftCount} new draft${draftCount === 1 ? '' : 's'} ready for review`,
-        html: `<p><strong>${draftCount}</strong> new article${draftCount === 1 ? ' has' : 's have'} been saved as <strong>drafts</strong> and will not go live until you publish them.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin">Open the admin dashboard</a> to edit and publish when ready.</p>`
+        html: `<p><strong>${draftCount}</strong> new article${draftCount === 1 ? ' has' : 's have'} been saved as <strong>drafts</strong> and will not go live until you publish them.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/editor">Open the editorial workspace</a> to edit and publish when ready.</p>`
       });
       console.log('Email notification sent.');
     } else {

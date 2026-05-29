@@ -1,5 +1,5 @@
 import { getPostsByStatus } from '@/lib/db';
-import { publishDraft, rejectDraft } from '@/app/admin/actions';
+import { publishDraft, rejectDraft } from '@/app/editor/actions';
 import {
   CheckCircle2,
   Clock,
@@ -27,7 +27,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default async function AdminDashboard() {
+export default async function EditorDashboard() {
   const drafts = await getPostsByStatus('draft');
   const published = await getPostsByStatus('published');
 
@@ -36,7 +36,7 @@ export default async function AdminDashboard() {
       <div className="mb-8">
         <h1 className="font-heading text-3xl font-bold tracking-tight mb-1">Editorial dashboard</h1>
         <p className="text-zinc-500">
-          Review AI-generated drafts, edit in the rich editor, then publish when ready.
+          Review AI-generated drafts from the daily cron, edit, then publish when ready.
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export default async function AdminDashboard() {
             Draft queue
           </h2>
           <Link
-            href="/admin/posts"
+            href="/editor/posts"
             className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
             View all posts →
@@ -97,7 +97,7 @@ export default async function AdminDashboard() {
             <FileText className="h-10 w-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-4" />
             <p className="font-medium text-zinc-600 dark:text-zinc-400">No drafts in the queue</p>
             <p className="text-sm text-zinc-500 mt-1">
-              New articles from feeds will appear here for your review.
+              New articles from feeds will appear here after the daily cron runs.
             </p>
           </div>
         ) : (
@@ -126,7 +126,7 @@ export default async function AdminDashboard() {
 
                   <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <Link
-                      href={`/admin/edit/${post.id}`}
+                      href={`/editor/edit/${post.id}`}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
                     >
                       <Edit3 className="h-4 w-4" />
@@ -173,7 +173,7 @@ export default async function AdminDashboard() {
                   </p>
                 </div>
                 <Link
-                  href={`/admin/edit/${post.id}`}
+                  href={`/editor/edit/${post.id}`}
                   className="shrink-0 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Edit

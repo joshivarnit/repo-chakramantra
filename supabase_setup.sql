@@ -52,3 +52,17 @@ create policy "Authenticated users can view subscribers"
   on public.subscribers for select
   to authenticated
   using (true);
+
+-- 7. Editor allowlist (who may use /editor — add rows to invite collaborators)
+create table public.editor_allowlist (
+  email text primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table public.editor_allowlist enable row level security;
+
+-- No public access; the app checks this table with the service role key
+create policy "No direct client access to editor allowlist"
+  on public.editor_allowlist for all
+  using (false)
+  with check (false);

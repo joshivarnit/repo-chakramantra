@@ -2,13 +2,22 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { updatePost, updatePostStatus } from '@/lib/db';
+import { isEditorAllowed } from '@/lib/editor-allowlist';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+
+const EDITOR_PATHS = ['/', '/editor', '/editor/posts'] as const;
+
+function revalidateEditor() {
+  for (const path of EDITOR_PATHS) {
+    revalidatePath(path);
+  }
+}
 
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect('/admin/login');
+  redirect('/editor/login');
 }
 
 export async function signIn(formData: FormData) {
@@ -16,38 +25,20 @@ export async function signIn(formData: FormData) {
   const password = formData.get('password') as string;
   const supabase = await createClient();
 
+  const allowedBeforeLogin = await isEditorAllowed(email);
+  if (!allowedBeforeLogin) {
+    redirect(
+      `/editor/login?error=${encodeURIComponent('This email is not authorized for editorial access.')}`
+    );
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/admin/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/editor/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect('/admin');
-}
-
-export async function signUp(formData: FormData) {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const supabase = await createClient();
-
-  const { error } = await supabase.auth.signUp({ email, password });
-
-  if (error) {
-    redirect(`/admin/login?signup_error=${encodeURIComponent(error.message)}`);
-  }
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (session) {
-    redirect('/admin');
-  }
-
-  redirect(
-    '/admin/login?success=' +
-      encodeURIComponent('Account created. Check your email to confirm, then sign in above.')
-  );
+  redirect('/editor');
 }
 
 export async function saveArticle(formData: FormData) {
@@ -79,11 +70,9 @@ export async function saveArticle(formData: FormData) {
     }
   }
 
-  revalidatePath('/admin');
-  revalidatePath('/admin/posts');
-  revalidatePath('/');
+  revalidateEditor();
   revalidatePath(`/post/${id}`);
-  redirect('/admin');
+  redirect('/editor');
 }
 
 export async function publishDraft(formData: FormData) {
@@ -104,9 +93,7 @@ export async function publishDraft(formData: FormData) {
 
   if (error) throw error;
 
-  revalidatePath('/admin');
-  revalidatePath('/admin/posts');
-  revalidatePath('/');
+  revalidateEditor();
   revalidatePath(`/post/${id}`);
 }
 
@@ -115,8 +102,7 @@ export async function rejectDraft(formData: FormData) {
   if (!id) return;
 
   await updatePostStatus(id, 'rejected');
-  revalidatePath('/admin');
-  revalidatePath('/admin/posts');
+  revalidateEditor();
 }
 
 export async function unpublishPost(formData: FormData) {
@@ -124,8 +110,6 @@ export async function unpublishPost(formData: FormData) {
   if (!id) return;
 
   await updatePostStatus(id, 'draft');
-  revalidatePath('/admin');
-  revalidatePath('/admin/posts');
-  revalidatePath('/');
+  revalidateEditor();
   revalidatePath(`/post/${id}`);
 }

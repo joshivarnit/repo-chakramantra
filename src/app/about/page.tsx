@@ -17,7 +17,6 @@ export default function AboutPage() {
           <nav className="flex items-center gap-6 text-sm font-medium">
             <Link href="/" className="transition-colors hover:text-foreground/80 text-foreground/60">Directory</Link>
             <Link href="/about" className="transition-colors text-foreground">About</Link>
-            <Link href="/admin" className="transition-colors hover:text-foreground/80 text-foreground/60">Admin</Link>
           </nav>
         </div>
       </header>

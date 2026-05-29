@@ -1,7 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isEditorAllowed } from '@/lib/editor-allowlist'
+
+const EDITOR_PREFIX = '/editor'
+const EDITOR_LOGIN = '/editor/login'
 
 export async function updateSession(request: NextRequest) {
+  // Legacy admin URLs → editorial workspace (not linked on the public site)
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    const url = request.nextUrl.clone()
+    url.pathname = request.nextUrl.pathname.replace(/^\/admin/, EDITOR_PREFIX)
+    return NextResponse.redirect(url)
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -27,31 +38,42 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with cross-site tracking.
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (
-    !user &&
-    request.nextUrl.pathname.startsWith('/admin') &&
-    request.nextUrl.pathname !== '/admin/login'
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin/login'
-    return NextResponse.redirect(url)
-  }
+  const isEditorRoute = request.nextUrl.pathname.startsWith(EDITOR_PREFIX)
+  const isEditorLogin = request.nextUrl.pathname === EDITOR_LOGIN
 
-  // If user is logged in and trying to access /admin/login, redirect to /admin
-  if (user && request.nextUrl.pathname === '/admin/login') {
+  if (isEditorRoute && !isEditorLogin) {
+    if (!user) {
       const url = request.nextUrl.clone()
-      url.pathname = '/admin'
+      url.pathname = EDITOR_LOGIN
+      url.searchParams.set('next', request.nextUrl.pathname)
       return NextResponse.redirect(url)
+    }
+
+    const allowed = await isEditorAllowed(user.email)
+    if (!allowed) {
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = EDITOR_LOGIN
+      url.searchParams.set(
+        'error',
+        'Your account is not authorized for editorial access. Ask the site owner to add your email.'
+      )
+      return NextResponse.redirect(url)
+    }
   }
 
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
+  if (user && isEditorLogin) {
+    const allowed = await isEditorAllowed(user.email)
+    if (allowed) {
+      const url = request.nextUrl.clone()
+      url.pathname = EDITOR_PREFIX
+      return NextResponse.redirect(url)
+    }
+  }
+
   return supabaseResponse
 }

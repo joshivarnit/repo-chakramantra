@@ -1,5 +1,5 @@
 import { getPostsByStatus, type Post } from '@/lib/db';
-import { publishDraft, rejectDraft, unpublishPost } from '@/app/admin/actions';
+import { publishDraft, rejectDraft, unpublishPost } from '@/app/editor/actions';
 import { CheckCircle2, Edit3, RotateCcw, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -79,7 +79,7 @@ export default async function AllPostsPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1">
                         <Link
-                          href={`/admin/edit/${post.id}`}
+                          href={`/editor/edit/${post.id}`}
                           className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40"
                         >
                           <Edit3 className="h-3.5 w-3.5" />
