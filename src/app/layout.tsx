@@ -13,8 +13,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Chakramantra | Premium Blog Directory",
-  description: "Curated trends shaping the web and tech. Discover high-ranking, deeply researched articles and breakthrough papers.",
+  title: "Chakramantra | Independent Editorial",
+  description: "Original analysis on technology, science, and global affairs — written clearly, researched deeply.",
 };
 
 export default function RootLayout({

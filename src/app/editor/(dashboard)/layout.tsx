@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { LayoutDashboard, FileText, LogOut, Sparkles, PenLine, UserCircle } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, Sparkles, PenLine, UserCircle, Rss } from 'lucide-react';
 import { signOut } from '@/app/editor/actions';
 import { createClient } from '@/lib/supabase/server';
 
@@ -54,6 +54,13 @@ export default async function EditorLayout({ children }: { children: React.React
           >
             <FileText className="h-4 w-4" />
             All posts
+          </Link>
+          <Link
+            href="/editor/sources"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 font-medium text-sm transition-colors"
+          >
+            <Rss className="h-4 w-4" />
+            Feed sources
           </Link>
         </nav>
 

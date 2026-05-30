@@ -28,11 +28,48 @@ export async function getPostsByStatus(status: Post['status']): Promise<Post[]> 
     return [];
   }
 
-  // Map snake_case to camelCase
   return (data || []).map(row => ({
     ...row,
     readTime: row.read_time
   })) as Post[];
+}
+
+export async function getPublishedPosts(filters?: {
+  genre?: string;
+  query?: string;
+}): Promise<Post[]> {
+  let posts = await getPostsByStatus('published');
+
+  if (filters?.genre) {
+    posts = posts.filter((p) => p.genre === filters.genre);
+  }
+
+  if (filters?.query) {
+    const q = filters.query.toLowerCase();
+    posts = posts.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.summary.toLowerCase().includes(q)
+    );
+  }
+
+  return posts;
+}
+
+export async function getPublishedGenres(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('posts')
+    .select('genre')
+    .eq('status', 'published');
+
+  if (error) {
+    console.error('Error fetching genres:', error);
+    return [];
+  }
+
+  const genres = new Set((data || []).map(row => row.genre as string));
+  return Array.from(genres).sort();
 }
 
 export async function getPostById(id: string): Promise<Post | undefined> {

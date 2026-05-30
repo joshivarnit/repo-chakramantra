@@ -2,11 +2,16 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { updatePost, updatePostStatus } from '@/lib/db';
+import {
+  addFeedSource,
+  deleteFeedSource,
+  setFeedSourceEnabled,
+} from '@/lib/feed-sources';
 import { isEditorAllowed } from '@/lib/editor-allowlist';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
-const EDITOR_PATHS = ['/', '/editor', '/editor/posts'] as const;
+const EDITOR_PATHS = ['/', '/editor', '/editor/posts', '/editor/sources', '/articles'] as const;
 
 function revalidateEditor() {
   for (const path of EDITOR_PATHS) {
@@ -112,4 +117,29 @@ export async function unpublishPost(formData: FormData) {
   await updatePostStatus(id, 'draft');
   revalidateEditor();
   revalidatePath(`/post/${id}`);
+}
+
+export async function addFeedSourceAction(formData: FormData) {
+  const url = formData.get('url') as string;
+  const name = formData.get('name') as string;
+  const category = (formData.get('category') as string) || 'General';
+
+  const result = await addFeedSource({ url, name, category });
+  if (result.error) {
+    redirect(`/editor/sources?error=${encodeURIComponent(result.error)}`);
+  }
+
+  revalidatePath('/editor/sources');
+}
+
+export async function deleteFeedSourceAction(id: string) {
+  if (!id) return;
+  await deleteFeedSource(id);
+  revalidatePath('/editor/sources');
+}
+
+export async function toggleFeedSourceAction(id: string, enabled: boolean) {
+  if (!id) return;
+  await setFeedSourceEnabled(id, enabled);
+  revalidatePath('/editor/sources');
 }

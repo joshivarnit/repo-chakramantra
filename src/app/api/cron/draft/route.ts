@@ -1,21 +1,12 @@
 import { analyzeContent } from "@/lib/ai";
 import { insertDraft, hasArticleBeenProcessed } from "@/lib/db";
+import { getActiveFeedSources, seedDefaultFeedSourcesIfEmpty } from "@/lib/feed-sources";
+import { PUBLICATION_NAME } from "@/lib/public-display";
 import { NextResponse } from "next/server";
 import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
 import { Resend } from 'resend';
 import twilio from 'twilio';
-
-const FEEDS = [
-  { url: "https://hnrss.org/frontpage", name: "Hacker News", category: "Technology" },
-  { url: "https://www.nature.com/nature.rss", name: "Nature", category: "Science" },
-  { url: "https://export.arxiv.org/rss/astro-ph", name: "ArXiv Astrophysics", category: "Science" },
-  { url: "https://export.arxiv.org/rss/cs", name: "ArXiv Computer Science", category: "Technology" },
-  { url: "https://news.google.com/rss/search?q=DD+News+India&hl=en-IN&gl=IN&ceid=IN:en", name: "DD News", category: "Geopolitics" },
-  { url: "http://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World", category: "Geopolitics" },
-  { url: "https://news.google.com/rss/search?q=Nvidia+OR+TSMC+OR+ASML+hardware&hl=en-US&gl=US&ceid=US:en", name: "Global Hardware", category: "Technology" },
-  { url: "https://www.espn.com/espn/rss/news", name: "ESPN", category: "Sports" }
-];
 
 const parser = new Parser();
 
@@ -34,11 +25,10 @@ async function sendNotifications(draftCount: number) {
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPhone = process.env.ADMIN_PHONE_NUMBER;
 
-    // Send Email via Resend
     if (process.env.RESEND_API_KEY && adminEmail) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
-        from: 'Chakramantra <onboarding@resend.dev>', // Resend testing domain
+        from: 'Chakramantra <onboarding@resend.dev>',
         to: adminEmail,
         subject: `[Chakramantra] ${draftCount} new draft${draftCount === 1 ? '' : 's'} ready for review`,
         html: `<p><strong>${draftCount}</strong> new article${draftCount === 1 ? ' has' : 's have'} been saved as <strong>drafts</strong> and will not go live until you publish them.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/editor">Open the editorial workspace</a> to edit and publish when ready.</p>`
@@ -48,7 +38,6 @@ async function sendNotifications(draftCount: number) {
       console.log('Resend API key or Admin Email not configured, skipping email notification.');
     }
 
-    // Send SMS via Twilio
     if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER && adminPhone) {
       const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
       await client.messages.create({
@@ -72,17 +61,26 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Phase 2: Source new articles to maintain the queue
-    const shuffledFeeds = shuffle([...FEEDS]);
+    await seedDefaultFeedSourcesIfEmpty();
+    const feeds = await getActiveFeedSources();
+
+    if (feeds.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No enabled feed sources. Add feeds in /editor/sources.',
+      }, { status: 400 });
+    }
+
+    const shuffledFeeds = shuffle([...feeds]);
     let draftsCreated = 0;
-    const MAX_DRAFTS = 3; 
+    const MAX_DRAFTS = 3;
 
     for (const feed of shuffledFeeds) {
       if (draftsCreated >= MAX_DRAFTS) break;
 
       try {
         const parsedFeed = await parser.parseURL(feed.url);
-        
+
         for (const item of parsedFeed.items.slice(0, 3)) {
           if (draftsCreated >= MAX_DRAFTS) break;
           if (!item.link) continue;
@@ -93,23 +91,23 @@ export async function GET(request: Request) {
           const response = await fetch(item.link);
           const html = await response.text();
           const $ = cheerio.load(html);
-          
+
           $('script, style, nav, header, footer, iframe, aside, svg, path, button, form, input, noscript, img, video, audio, canvas').remove();
-          
+
           let rawText = $('body').text().replace(/\s+/g, ' ').trim();
           rawText = rawText.substring(0, 6000);
-          
+
           if (rawText.length < 500) continue;
 
           const analyzed = await analyzeContent(rawText, item.link);
-          
+
           await insertDraft({
             title: analyzed.title,
             genre: analyzed.genre || feed.category,
             summary: analyzed.summary,
             content: analyzed.contentHtml,
             source: feed.name,
-            author: item.creator || item.author || feed.name,
+            author: PUBLICATION_NAME,
             date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             readTime: `${Math.ceil(rawText.split(' ').length / 200)} min read`,
             sourceUrl: item.link,
@@ -117,25 +115,26 @@ export async function GET(request: Request) {
           });
 
           draftsCreated++;
-          break; 
+          break;
         }
       } catch (feedError) {
         console.error(`Error processing feed ${feed.name}:`, feedError);
       }
     }
 
-    // Trigger Notifications
     if (draftsCreated > 0) {
       await sendNotifications(draftsCreated);
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: "Daily drafting pipeline executed successfully.",
-      draftsCreated 
+      draftsCreated,
+      feedsChecked: shuffledFeeds.length,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cron Job Draft Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

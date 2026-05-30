@@ -1,152 +1,235 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { prepareWithSegments, layoutWithLines } from "@chenglou/pretext";
-import Link from "next/link";
 import { Post } from "@/lib/db";
 
+const SPOKES = 12;
+
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function describeArc(
+  cx: number,
+  cy: number,
+  r: number,
+  startAngle: number,
+  endAngle: number
+) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+}
+
+function BlockArrow({ rotation }: { rotation: number }) {
+  return (
+    <g transform={`rotate(${rotation})`}>
+      <path
+        d="M -18 -8 L 8 -8 L 8 -14 L 22 0 L 8 14 L 8 8 L -18 8 Z"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth={0.5}
+        className="text-primary/85"
+      />
+    </g>
+  );
+}
+
+function ChakraSvg({
+  size,
+  posts,
+  hero,
+}: {
+  size: number;
+  posts?: Post[];
+  hero?: boolean;
+}) {
+  const cx = size / 2;
+  const cy = size / 2;
+  const outerR = size / 2 - 6;
+  const innerR = outerR * 0.38;
+  const textInnerR = outerR * 0.58;
+  const textOuterR = outerR * 0.93;
+  const labelMidR = (textInnerR + textOuterR) / 2;
+
+  const displayPosts = posts?.slice(0, SPOKES) ?? [];
+  const spokeStep = 360 / SPOKES;
+  const fontSize = hero ? Math.max(9, size * 0.017) : Math.max(7, size * 0.012);
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="overflow-visible"
+    >
+      <defs>
+        <radialGradient id="chakraGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.18" />
+          <stop offset="70%" stopColor="#3b82f6" stopOpacity="0.06" />
+          <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="hubGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3b82f6" />
+          <stop offset="100%" stopColor="#8b5cf6" />
+        </linearGradient>
+      </defs>
+
+      <circle cx={cx} cy={cy} r={outerR} fill="url(#chakraGlow)" />
+
+      <circle
+        cx={cx}
+        cy={cy}
+        r={outerR}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        className="text-accent/35"
+      />
+
+      <polygon
+        points={Array.from({ length: SPOKES }, (_, i) => {
+          const pt = polarToCartesian(cx, cy, innerR, i * spokeStep);
+          return `${pt.x},${pt.y}`;
+        }).join(" ")}
+        fill="rgba(139, 92, 246, 0.07)"
+        stroke="currentColor"
+        strokeWidth={1}
+        className="text-accent/30"
+      />
+
+      {Array.from({ length: SPOKES }, (_, i) => {
+        const startAngle = i * spokeStep;
+        const midAngle = startAngle + spokeStep / 2;
+        const outerPt = polarToCartesian(cx, cy, outerR, startAngle);
+        const innerPt = polarToCartesian(cx, cy, innerR, startAngle);
+
+        const arrowR = innerR * 0.55;
+        const arrowPos = polarToCartesian(cx, cy, arrowR, midAngle);
+
+        return (
+          <g key={`spoke-${i}`}>
+            <line
+              x1={cx}
+              y1={cy}
+              x2={outerPt.x}
+              y2={outerPt.y}
+              stroke="currentColor"
+              strokeWidth={1}
+              className="text-white/12"
+            />
+            <line
+              x1={innerPt.x}
+              y1={innerPt.y}
+              x2={outerPt.x}
+              y2={outerPt.y}
+              stroke="currentColor"
+              strokeWidth={0.75}
+              className="text-white/8"
+            />
+            <g transform={`translate(${arrowPos.x}, ${arrowPos.y})`}>
+              <BlockArrow rotation={midAngle} />
+            </g>
+          </g>
+        );
+      })}
+
+      {displayPosts.map((post, i) => {
+        const startAngle = i * spokeStep + 3;
+        const endAngle = (i + 1) * spokeStep - 3;
+        const pathId = `text-arc-${post.id}-${i}`;
+        const arcPath = describeArc(cx, cy, labelMidR, startAngle, endAngle);
+        const label = post.title.length > 32 ? `${post.title.slice(0, 30)}…` : post.title;
+
+        const textEl = (
+          <text
+            fill="currentColor"
+            className="text-foreground/90 hover:text-primary transition-colors"
+            fontSize={fontSize}
+            fontWeight={600}
+            fontFamily="var(--font-outfit), Outfit, sans-serif"
+          >
+            <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
+              {label}
+            </textPath>
+          </text>
+        );
+
+        return (
+          <g key={post.id}>
+            <path id={pathId} d={arcPath} fill="none" />
+            {hero ? (
+              <a href={`/post/${post.id}`} title={post.title} className="cursor-pointer">
+                {textEl}
+              </a>
+            ) : (
+              textEl
+            )}
+          </g>
+        );
+      })}
+
+      {!hero && (
+        <>
+          <circle cx={cx} cy={cy} r={outerR * 0.14} fill="url(#hubGrad)" />
+          <circle cx={cx} cy={cy} r={outerR * 0.05} fill="white" fillOpacity={0.9} />
+        </>
+      )}
+    </svg>
+  );
+}
+
 export default function ChakraWheel({
-  text = "० १ २ ३ ४ ५ ६ ७ ८ ९ • ",
   size = 120,
   posts,
 }: {
-  text?: string;
   size?: number;
   posts?: Post[];
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const isHero = Boolean(posts && posts.length > 0);
+  const outerR = size / 2 - 6;
+  const hubSize = outerR * 0.28;
 
-  useEffect(() => {
-    if (isHero) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
-    ctx.scale(dpr, dpr);
-
-    ctx.clearRect(0, 0, size, size);
-
-    const radius = size / 2 - 16;
-    const centerX = size / 2;
-    const centerY = size / 2;
-
-    const font = "600 11px Inter, sans-serif";
-    ctx.font = font;
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#8b5cf6";
-
-    const fullText = text.repeat(2);
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-
-    let currentAngle = 0;
-
-    for (let i = 0; i < fullText.length; i++) {
-      const char = fullText[i];
-
-      const charPrep = prepareWithSegments(char, font);
-      const charMeasure = layoutWithLines(charPrep, 1000, 16);
-      const charWidth = charMeasure.lines.length > 0 ? charMeasure.lines[0].width : 0;
-
-      const angleStep = (charWidth / (radius * Math.PI * 2)) * (Math.PI * 2);
-
-      ctx.save();
-      ctx.rotate(currentAngle + angleStep / 2 - Math.PI / 2);
-      ctx.fillText(char, 0, -radius);
-      ctx.restore();
-
-      currentAngle += angleStep * 1.6;
-    }
-
-    ctx.restore();
-  }, [text, size, isHero]);
-
-  if (isHero && posts) {
-    const angleStep = 360 / posts.length;
-    const innerRadius = size * 0.22;
-    const labelWidth = size / 2 - innerRadius - 24;
-    const centerSize = Math.max(56, size * 0.14);
-
+  if (isHero) {
     return (
       <div
         className="relative flex items-center justify-center"
         style={{ width: size, height: size }}
       >
-        <div className="absolute inset-0 rounded-full border-2 border-accent/30 bg-accent/10 backdrop-blur-md shadow-[0_0_80px_rgba(139,92,246,0.15)]" />
+        <div className="absolute inset-0 rounded-full border border-accent/20 bg-accent/5 backdrop-blur-md shadow-[0_0_80px_rgba(139,92,246,0.12)]" />
 
-        <div className="absolute inset-0 z-20 animate-[spin_50s_linear_infinite] hover:[animation-play-state:paused] group/wheel">
-          {posts.map((post, i) => {
-            const rotation = i * angleStep;
-            return (
-              <div
-                key={post.id}
-                className="absolute top-1/2 left-1/2 -translate-y-1/2 origin-left flex items-center pointer-events-none"
-                style={{
-                  transform: `rotate(${rotation}deg) translateX(${innerRadius}px)`,
-                  width: labelWidth,
-                }}
-              >
-                <div
-                  className="pointer-events-auto w-full"
-                  style={{ transform: `rotate(-${rotation}deg)` }}
-                >
-                  <Link
-                    href={`/post/${post.id}`}
-                    className="group/link flex w-full min-h-[44px] items-center rounded-lg px-3 py-2 text-base sm:text-lg font-bold leading-snug text-foreground/95 bg-background/40 backdrop-blur-sm border border-white/10 shadow-sm transition-all hover:scale-[1.03] hover:border-primary/50 hover:bg-primary/15 hover:text-primary hover:shadow-md hover:shadow-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    title={post.title}
-                  >
-                    <span className="line-clamp-2 underline-offset-4 group-hover/link:underline">
-                      {post.title}
-                    </span>
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
+        <div className="absolute inset-0 z-10 animate-[spin_120s_linear_infinite] hover:[animation-play-state:paused] [&_a]:pointer-events-auto">
+          <ChakraSvg size={size} posts={posts!.slice(0, SPOKES)} hero />
         </div>
 
         <div
-          className="absolute flex items-center justify-center rounded-full bg-gradient-to-tr from-primary to-accent shadow-xl shadow-accent/30 z-30 pointer-events-none"
-          style={{ width: centerSize, height: centerSize }}
+          className="absolute z-20 pointer-events-none rounded-full shadow-xl shadow-accent/30"
+          style={{
+            width: hubSize,
+            height: hubSize,
+            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
+          }}
         >
-          <svg
-            className="text-white"
-            style={{ width: centerSize * 0.5, height: centerSize * 0.5 }}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2M2 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41M12 20v2M20 12h2" />
-          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="rounded-full bg-white/90"
+              style={{ width: "35%", height: "35%" }}
+            />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex items-center justify-center overflow-hidden" style={{ width: size, height: size }}>
+    <div
+      className="relative flex items-center justify-center overflow-hidden group"
+      style={{ width: size, height: size }}
+    >
       <div className="absolute inset-0 rounded-full border border-accent/20 bg-accent/5 backdrop-blur-md" />
-      <div className="absolute inset-0 transition-transform duration-1000 ease-in-out group-hover:animate-[spin_4s_linear_infinite] animate-[spin_20s_linear_infinite]">
-        <canvas
-          ref={canvasRef}
-          className="absolute top-0 left-0"
-          style={{ width: size, height: size }}
-        />
-      </div>
-      <div className="absolute flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-accent shadow-lg shadow-accent/20 z-10">
-        <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M2 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41M12 20v2M20 12h2" />
-        </svg>
+      <div className="absolute inset-0 group-hover:animate-[spin_8s_linear_infinite] animate-[spin_40s_linear_infinite]">
+        <ChakraSvg size={size} />
       </div>
     </div>
   );
