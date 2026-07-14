@@ -125,21 +125,31 @@ function ChakraSvg({
         const pathId = `text-arc-${i}`;
         const arcPath = describeArc(cx, cy, labelMidR, startAngle, endAngle);
 
+        const textEl = (
+          <text
+            fill="currentColor"
+            className={hero ? "text-foreground/70 hover:text-primary transition-colors" : "text-foreground/70"}
+            fontSize={fontSize}
+            fontWeight={500}
+            letterSpacing={1.2}
+            fontFamily="var(--font-outfit), Outfit, sans-serif"
+          >
+            <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
+              {niche.toUpperCase()}
+            </textPath>
+          </text>
+        );
+
         return (
           <g key={`niche-${i}`}>
             <path id={pathId} d={arcPath} fill="none" />
-            <text
-              fill="currentColor"
-              className="text-foreground/70"
-              fontSize={fontSize}
-              fontWeight={500}
-              letterSpacing={1.2}
-              fontFamily="var(--font-outfit), Outfit, sans-serif"
-            >
-              <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
-                {niche.toUpperCase()}
-              </textPath>
-            </text>
+            {hero ? (
+              <a href={`/articles?genre=${encodeURIComponent(niche)}`} className="cursor-pointer outline-none">
+                {textEl}
+              </a>
+            ) : (
+              textEl
+            )}
           </g>
         );
       })}

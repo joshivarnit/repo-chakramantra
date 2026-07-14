@@ -141,7 +141,7 @@ export async function insertDraft(post: Omit<Post, 'id'>): Promise<void> {
       date: post.date,
       read_time: post.readTime,
       source_url: post.sourceUrl,
-      status: 'draft'
+      status: post.status
     }]);
 
   if (error) {

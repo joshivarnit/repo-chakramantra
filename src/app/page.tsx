@@ -18,14 +18,14 @@ export default async function Home() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none"></div>
           <div className="container relative mx-auto px-4">
             <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-24">
-              <div className="relative flex justify-center w-full lg:w-1/2 order-2 lg:order-1">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] sm:w-[700px] sm:h-[700px] bg-accent/25 blur-[120px] rounded-full pointer-events-none"></div>
-                <div className="relative scale-90 sm:scale-100 origin-center transition-transform duration-500 z-10 group">
-                  <ChakraWheel size={640} isHero={true} />
+              <div className="relative flex justify-center w-full lg:w-7/12 order-2 lg:order-1 mt-12 lg:mt-0">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[1000px] sm:h-[1000px] bg-accent/25 blur-[120px] rounded-full pointer-events-none"></div>
+                <div className="relative scale-75 sm:scale-100 lg:scale-110 origin-center transition-transform duration-500 z-10 group">
+                  <ChakraWheel size={800} isHero={true} />
                 </div>
               </div>
 
-              <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:w-1/2 order-1 lg:order-2 z-20">
+              <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:w-5/12 order-1 lg:order-2 z-20">
                 <h1 className="font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-gradient mb-6 leading-tight">
                   Chakramantra <br className="hidden sm:block" /> the insight circle
                 </h1>
