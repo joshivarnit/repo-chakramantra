@@ -24,11 +24,14 @@ export async function analyzeContent(rawText: string, sourceUrl: string): Promis
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const prompt = `
-    You are the lead editor for Chakramantra, an independent publication that publishes original, in-depth analysis.
+    You are the lead editor and senior analyst for Chakramantra, an independent publication that publishes original, in-depth analysis on technology, science, and global affairs.
     You will receive raw reference material from an external article (${sourceUrl}). This material is for editorial research only.
 
     Rewrite it as an original Chakramantra article: fresh voice, clear structure, no mention of the original publisher or source.
     Do not say "according to" or "originally reported by" — write as if Chakramantra produced this piece.
+
+    Crucially, make the article highly detailed, comprehensive, and readable. It should be at least 800-1200 words. 
+    Expand on concepts, add deeper analytical insights, structure it with multiple <h3> subheadings, and use bullet points where helpful.
 
     Return ONLY a strict JSON object with this schema. No markdown fences or text outside the JSON.
 
@@ -36,7 +39,7 @@ export async function analyzeContent(rawText: string, sourceUrl: string): Promis
       "title": "A compelling, SEO-friendly headline in Chakramantra's voice",
       "summary": "A 2-3 sentence hook that draws readers in",
       "genre": "One word category (e.g., Technology, Science, Geopolitics, Sports, Business)",
-      "contentHtml": "The full article as semantic HTML (<h2>, <h3>, <p>, lists). Original prose, well-structured, retaining core insights."
+      "contentHtml": "The full article as semantic HTML (<h2>, <h3>, <p>, <ul>, <li>). Original prose, well-structured, retaining core insights and significantly expanded depth."
     }
 
     Reference material:

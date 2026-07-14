@@ -20,7 +20,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <SiteHeader />
 
       <main className="flex-1 pb-24">
-        <article className="container mx-auto px-4 max-w-3xl pt-12 lg:pt-20">
+        <article className="container mx-auto px-4 max-w-4xl pt-12 lg:pt-20">
           <Link href="/articles" className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-foreground mb-8 transition-colors">
             <ArrowLeft className="h-4 w-4" />
             All articles
@@ -63,7 +63,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           </div>
 
           <div
-            className="prose prose-invert max-w-none prose-headings:font-heading prose-p:leading-relaxed prose-a:text-primary hover:prose-a:text-accent prose-img:rounded-2xl"
+            className="prose prose-lg md:prose-xl dark:prose-invert max-w-none prose-headings:font-heading prose-p:leading-relaxed prose-a:text-primary hover:prose-a:text-accent prose-img:rounded-2xl"
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
         </article>

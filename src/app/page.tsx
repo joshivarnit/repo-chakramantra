@@ -21,7 +21,7 @@ export default async function Home() {
               <div className="relative flex justify-center w-full lg:w-1/2 order-2 lg:order-1">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] sm:w-[700px] sm:h-[700px] bg-accent/25 blur-[120px] rounded-full pointer-events-none"></div>
                 <div className="relative scale-90 sm:scale-100 origin-center transition-transform duration-500 z-10 group">
-                  <ChakraWheel size={640} posts={posts.slice(0, 12)} />
+                  <ChakraWheel size={640} isHero={true} />
                 </div>
               </div>
 

@@ -5,8 +5,6 @@ import { PUBLICATION_NAME } from "@/lib/public-display";
 import { NextResponse } from "next/server";
 import Parser from 'rss-parser';
 import * as cheerio from 'cheerio';
-import { Resend } from 'resend';
-import twilio from 'twilio';
 
 const parser = new Parser();
 
@@ -20,39 +18,7 @@ function shuffle<T>(array: T[]): T[] {
   return array;
 }
 
-async function sendNotifications(draftCount: number) {
-  try {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPhone = process.env.ADMIN_PHONE_NUMBER;
-
-    if (process.env.RESEND_API_KEY && adminEmail) {
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'Chakramantra <onboarding@resend.dev>',
-        to: adminEmail,
-        subject: `[Chakramantra] ${draftCount} new draft${draftCount === 1 ? '' : 's'} ready for review`,
-        html: `<p><strong>${draftCount}</strong> new article${draftCount === 1 ? ' has' : 's have'} been saved as <strong>drafts</strong> and will not go live until you publish them.</p><p><a href="${process.env.NEXT_PUBLIC_SITE_URL}/editor">Open the editorial workspace</a> to edit and publish when ready.</p>`
-      });
-      console.log('Email notification sent.');
-    } else {
-      console.log('Resend API key or Admin Email not configured, skipping email notification.');
-    }
-
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER && adminPhone) {
-      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-      await client.messages.create({
-        body: `Chakramantra: ${draftCount} new draft(s) are ready for your review. Log in to publish manually.`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: adminPhone
-      });
-      console.log('SMS notification sent.');
-    } else {
-      console.log('Twilio credentials not configured, skipping SMS notification.');
-    }
-  } catch (error) {
-    console.error('Error sending notifications:', error);
-  }
-}
+// Notifications removed for automated publishing
 
 export async function GET(request: Request) {
   try {
@@ -111,7 +77,7 @@ export async function GET(request: Request) {
             date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             readTime: `${Math.ceil(rawText.split(' ').length / 200)} min read`,
             sourceUrl: item.link,
-            status: 'draft'
+            status: 'published'
           });
 
           draftsCreated++;
@@ -123,7 +89,7 @@ export async function GET(request: Request) {
     }
 
     if (draftsCreated > 0) {
-      await sendNotifications(draftsCreated);
+      console.log(`Successfully published ${draftsCreated} articles.`);
     }
 
     return NextResponse.json({
