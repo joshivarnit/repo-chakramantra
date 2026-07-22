@@ -5,6 +5,7 @@ import SiteHeader from "@/components/SiteHeader";
 import ArticlesFilter from "@/components/ArticlesFilter";
 import ChakraWheel from "@/components/ChakraWheel";
 import { getPublishedGenres, getPublishedPosts } from "@/lib/db";
+import { CHAKRA_TOPICS } from "@/lib/constants";
 import { publicAuthor } from "@/lib/public-display";
 
 export const metadata = {
@@ -21,10 +22,14 @@ export default async function ArticlesPage({
   const genre = params.genre?.trim() || undefined;
   const query = params.q?.trim() || undefined;
 
-  const [posts, genres] = await Promise.all([
+  const [posts, publishedGenres] = await Promise.all([
     getPublishedPosts({ genre, query }),
     getPublishedGenres(),
   ]);
+
+  // Merge the published genres with the default CHAKRA_TOPICS so the filter 
+  // list always has the 24 wheel topics as a directory of content.
+  const displayGenres = Array.from(new Set([...CHAKRA_TOPICS, ...publishedGenres])).sort();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -45,7 +50,7 @@ export default async function ArticlesPage({
         <section className="py-12">
           <div className="container mx-auto px-4">
             <Suspense fallback={null}>
-              <ArticlesFilter genres={genres} currentGenre={genre} currentQuery={query} />
+              <ArticlesFilter genres={displayGenres} currentGenre={genre} currentQuery={query} />
             </Suspense>
 
             {posts.length === 0 ? (
