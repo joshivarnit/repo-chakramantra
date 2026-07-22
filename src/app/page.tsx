@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getPostsByStatus } from "@/lib/db";
+import { getPostsByStatus, getPublishedGenres } from "@/lib/db";
 import { publicAuthor } from "@/lib/public-display";
 import ChakraWheel from "@/components/ChakraWheel";
 import NewsletterForm from "@/components/NewsletterForm";
 import SiteHeader from "@/components/SiteHeader";
 
 export default async function Home() {
-  const posts = await getPostsByStatus('published');
+  const [posts, genres] = await Promise.all([
+    getPostsByStatus('published'),
+    getPublishedGenres()
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -21,7 +24,7 @@ export default async function Home() {
               <div className="relative flex justify-center w-full lg:w-7/12 order-2 lg:order-1 mt-12 lg:mt-0">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[1000px] sm:h-[1000px] bg-accent/25 blur-[120px] rounded-full pointer-events-none"></div>
                 <div className="relative scale-75 sm:scale-100 lg:scale-110 origin-center transition-transform duration-500 z-10 group">
-                  <ChakraWheel size={800} isHero={true} />
+                  <ChakraWheel size={800} isHero={true} topics={genres} />
                 </div>
               </div>
 
