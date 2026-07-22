@@ -2,7 +2,7 @@
 
 const SPOKES = 24;
 
-import { CHAKRA_TOPICS as NICHES } from "@/lib/constants";
+import { CHAKRA_TOPICS as DEFAULT_NICHES } from "@/lib/constants";
 
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;
@@ -25,13 +25,22 @@ function describeArc(
 function ChakraSvg({
   size,
   hero,
+  topics,
 }: {
   size: number;
   hero?: boolean;
+  topics?: string[];
 }) {
+  const SPOKES = 24;
+  const displayTopics = Array.from({ length: SPOKES }, (_, i) => {
+    const sourceList = topics && topics.length > 0 ? topics : DEFAULT_NICHES;
+    return sourceList[i % sourceList.length];
+  });
+
   const cx = size / 2;
   const cy = size / 2;
-  const outerR = size / 2 - 6;
+  // Reduce outerR to size * 0.40 to leave a 10% margin on all sides (fixes text clipping)
+  const outerR = size * 0.40;
   const innerR = outerR * 0.25;
   const textInnerR = outerR * 0.65;
   const textOuterR = outerR * 0.95;
@@ -114,7 +123,7 @@ function ChakraSvg({
       })}
 
       {/* Labels */}
-      {NICHES.map((niche, i) => {
+      {displayTopics.map((niche, i) => {
         const startAngle = i * spokeStep + 1;
         const endAngle = (i + 1) * spokeStep - 1;
         const pathId = `text-arc-${i}`;
@@ -160,9 +169,11 @@ function ChakraSvg({
 export default function ChakraWheel({
   size = 120,
   isHero = false,
+  topics,
 }: {
   size?: number;
   isHero?: boolean;
+  topics?: string[];
 }) {
   if (isHero) {
     return (
@@ -173,7 +184,7 @@ export default function ChakraWheel({
         <div className="absolute inset-0 rounded-full border border-accent/20 bg-accent/5 backdrop-blur-md shadow-[0_0_80px_rgba(139,92,246,0.12)]" />
 
         <div className="absolute inset-0 z-10 animate-[spin_120s_linear_infinite] hover:[animation-play-state:paused] [&_a]:pointer-events-auto">
-          <ChakraSvg size={size} hero />
+          <ChakraSvg size={size} hero topics={topics} />
         </div>
       </div>
     );
@@ -186,7 +197,7 @@ export default function ChakraWheel({
     >
       <div className="absolute inset-0 rounded-full border border-accent/20 bg-accent/5 backdrop-blur-md" />
       <div className="absolute inset-0 group-hover:animate-[spin_8s_linear_infinite] animate-[spin_40s_linear_infinite]">
-        <ChakraSvg size={size} />
+        <ChakraSvg size={size} topics={topics} />
       </div>
     </div>
   );
