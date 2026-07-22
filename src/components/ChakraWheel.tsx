@@ -124,8 +124,11 @@ function ChakraSvg({
 
       {/* Labels */}
       {displayTopics.map((niche, i) => {
-        const startAngle = i * spokeStep + 1;
-        const endAngle = (i + 1) * spokeStep - 1;
+        // Expand the arc angle for the text path so long text isn't clipped by the SVG boundaries of the arc.
+        const midAngle = (i + 0.5) * spokeStep;
+        const textSpan = 40; // 40 degrees instead of spokeStep (15 degrees)
+        const startAngle = midAngle - textSpan / 2;
+        const endAngle = midAngle + textSpan / 2;
         const pathId = `text-arc-${i}`;
         const arcPath = describeArc(cx, cy, labelMidR, startAngle, endAngle);
 

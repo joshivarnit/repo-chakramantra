@@ -87,12 +87,28 @@ create policy "Authenticated users can manage feed sources"
 
 -- Seed default feeds (safe to re-run: ON CONFLICT DO NOTHING)
 insert into public.feed_sources (url, name, category, enabled) values
+  ('https://export.arxiv.org/rss/cs.AI', 'ArXiv AI', 'AI', true),
+  ('https://www.eurekalert.org/rss/technology_engineering', 'Automation News', 'Automation', true),
   ('https://hnrss.org/frontpage', 'Hacker News', 'Tech', true),
-  ('https://www.nature.com/nature.rss', 'Nature', 'Science', true),
+  ('https://export.arxiv.org/rss/q-bio.NC', 'ArXiv Neuroscience', 'Neuroscience', true),
+  ('https://www.computerworld.com/index.rss', 'Computerworld', 'IT', true),
+  ('https://www.polygon.com/rss/index.xml', 'Polygon', 'Gaming', true),
+  ('https://krebsonsecurity.com/feed/', 'Krebs on Security', 'Cybersec', true),
+  ('https://export.arxiv.org/rss/cs.NI', 'ArXiv Networking', 'Networking', true),
+  ('https://techcrunch.com/feed/', 'TechCrunch', 'Startups', true),
   ('https://export.arxiv.org/rss/astro-ph', 'ArXiv Astrophysics', 'Space', true),
-  ('https://export.arxiv.org/rss/cs', 'ArXiv Computer Science', 'AI', true),
-  ('https://news.google.com/rss/search?q=DD+News+India&hl=en-IN&gl=IN&ceid=IN:en', 'DD News', 'Future', true),
-  ('http://feeds.bbci.co.uk/news/world/rss.xml', 'BBC World', 'Future', true),
-  ('https://news.google.com/rss/search?q=Nvidia+OR+TSMC+OR+ASML+hardware&hl=en-US&gl=US&ceid=US:en', 'Global Hardware', 'Hardware', true),
-  ('https://www.espn.com/espn/rss/news', 'ESPN', 'Gaming', true)
+  ('https://export.arxiv.org/rss/cs.RO', 'ArXiv Robotics', 'Robotics', true),
+  ('https://export.arxiv.org/rss/quant-ph', 'ArXiv Quantum', 'Quantum', true),
+  ('https://www.nature.com/nbt.rss', 'Nature BioTech', 'BioTech', true),
+  ('https://www.smashingmagazine.com/feed/', 'Smashing Magazine', 'Design', true),
+  ('https://export.arxiv.org/rss/cs.DB', 'ArXiv Databases', 'Data', true),
+  ('https://plato.stanford.edu/rss/sep.xml', 'Stanford Ethics', 'Ethics', true),
+  ('https://www.eff.org/rss/updates.xml', 'EFF', 'Privacy', true),
+  ('https://www.nature.com/nature.rss', 'Nature', 'Science', true),
+  ('https://www.wired.com/feed/rss', 'Wired', 'Future', true),
+  ('https://cointelegraph.com/rss', 'CoinTelegraph', 'Web3', true),
+  ('https://aws.amazon.com/about-aws/whats-new/recent/feed/', 'AWS Cloud', 'Cloud', true),
+  ('https://saastr.com/feed/', 'SaaStr', 'SaaS', true),
+  ('https://www.androidpolice.com/feed/', 'Android Police', 'Mobile', true),
+  ('https://news.google.com/rss/search?q=Hardware&hl=en-US&gl=US&ceid=US:en', 'Hardware News', 'Hardware', true)
 on conflict (url) do nothing;

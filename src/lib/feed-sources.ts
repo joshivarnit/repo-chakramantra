@@ -11,24 +11,30 @@ export interface FeedSource {
 }
 
 export const DEFAULT_FEED_SOURCES: Omit<FeedSource, "id" | "createdAt">[] = [
+  { url: "https://export.arxiv.org/rss/cs.AI", name: "ArXiv AI", category: "AI", enabled: true },
+  { url: "https://www.eurekalert.org/rss/technology_engineering", name: "Automation News", category: "Automation", enabled: true },
   { url: "https://hnrss.org/frontpage", name: "Hacker News", category: "Tech", enabled: true },
-  { url: "https://www.nature.com/nature.rss", name: "Nature", category: "Science", enabled: true },
+  { url: "https://export.arxiv.org/rss/q-bio.NC", name: "ArXiv Neuroscience", category: "Neuroscience", enabled: true },
+  { url: "https://www.computerworld.com/index.rss", name: "Computerworld", category: "IT", enabled: true },
+  { url: "https://www.polygon.com/rss/index.xml", name: "Polygon", category: "Gaming", enabled: true },
+  { url: "https://krebsonsecurity.com/feed/", name: "Krebs on Security", category: "Cybersec", enabled: true },
+  { url: "https://export.arxiv.org/rss/cs.NI", name: "ArXiv Networking", category: "Networking", enabled: true },
+  { url: "https://techcrunch.com/feed/", name: "TechCrunch", category: "Startups", enabled: true },
   { url: "https://export.arxiv.org/rss/astro-ph", name: "ArXiv Astrophysics", category: "Space", enabled: true },
-  { url: "https://export.arxiv.org/rss/cs", name: "ArXiv Computer Science", category: "AI", enabled: true },
-  {
-    url: "https://news.google.com/rss/search?q=DD+News+India&hl=en-IN&gl=IN&ceid=IN:en",
-    name: "DD News",
-    category: "Future",
-    enabled: true,
-  },
-  { url: "http://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World", category: "Future", enabled: true },
-  {
-    url: "https://news.google.com/rss/search?q=Nvidia+OR+TSMC+OR+ASML+hardware&hl=en-US&gl=US&ceid=US:en",
-    name: "Global Hardware",
-    category: "Hardware",
-    enabled: true,
-  },
-  { url: "https://www.espn.com/espn/rss/news", name: "ESPN", category: "Gaming", enabled: true },
+  { url: "https://export.arxiv.org/rss/cs.RO", name: "ArXiv Robotics", category: "Robotics", enabled: true },
+  { url: "https://export.arxiv.org/rss/quant-ph", name: "ArXiv Quantum", category: "Quantum", enabled: true },
+  { url: "https://www.nature.com/nbt.rss", name: "Nature BioTech", category: "BioTech", enabled: true },
+  { url: "https://www.smashingmagazine.com/feed/", name: "Smashing Magazine", category: "Design", enabled: true },
+  { url: "https://export.arxiv.org/rss/cs.DB", name: "ArXiv Databases", category: "Data", enabled: true },
+  { url: "https://plato.stanford.edu/rss/sep.xml", name: "Stanford Ethics", category: "Ethics", enabled: true },
+  { url: "https://www.eff.org/rss/updates.xml", name: "EFF", category: "Privacy", enabled: true },
+  { url: "https://www.nature.com/nature.rss", name: "Nature", category: "Science", enabled: true },
+  { url: "https://www.wired.com/feed/rss", name: "Wired", category: "Future", enabled: true },
+  { url: "https://cointelegraph.com/rss", name: "CoinTelegraph", category: "Web3", enabled: true },
+  { url: "https://aws.amazon.com/about-aws/whats-new/recent/feed/", name: "AWS Cloud", category: "Cloud", enabled: true },
+  { url: "https://saastr.com/feed/", name: "SaaStr", category: "SaaS", enabled: true },
+  { url: "https://www.androidpolice.com/feed/", name: "Android Police", category: "Mobile", enabled: true },
+  { url: "https://news.google.com/rss/search?q=Hardware&hl=en-US&gl=US&ceid=US:en", name: "Hardware News", category: "Hardware", enabled: true }
 ];
 
 function mapRow(row: Record<string, unknown>): FeedSource {

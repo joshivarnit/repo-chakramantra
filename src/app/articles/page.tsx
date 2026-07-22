@@ -69,7 +69,7 @@ export default async function ArticlesPage({
                         </span>
                         <span className="text-xs text-foreground/50">{post.readTime}</span>
                       </div>
-                      <ChakraWheel size={56} topics={genres} />
+                      <ChakraWheel size={56} />
                     </div>
 
                     <div className="relative z-10 flex-1">
