@@ -124,25 +124,33 @@ function ChakraSvg({
 
       {/* Labels */}
       {displayTopics.map((niche, i) => {
-        // Expand the arc angle for the text path so long text isn't clipped by the SVG boundaries of the arc.
-        const midAngle = (i + 0.5) * spokeStep;
-        const textSpan = 40; // 40 degrees instead of spokeStep (15 degrees)
-        const startAngle = midAngle - textSpan / 2;
-        const endAngle = midAngle + textSpan / 2;
+        const startAngle = i * spokeStep + 0.5;
+        const endAngle = (i + 1) * spokeStep - 0.5;
         const pathId = `text-arc-${i}`;
         const arcPath = describeArc(cx, cy, labelMidR, startAngle, endAngle);
+
+        const textToRender = niche.toUpperCase();
+        // Calculate max available arc length in pixels for this 14-degree wedge
+        const arcLen = (2 * Math.PI * labelMidR) * ((spokeStep - 1) / 360);
+        // Approximate width of the text (0.6 is a standard average char width ratio for sans-serif)
+        const approxWidth = textToRender.length * (fontSize * 0.6);
+        
+        // Scale down the font size if the text is too long to fit in the wedge
+        const dynamicFontSize = approxWidth > arcLen 
+          ? fontSize * (arcLen / approxWidth) 
+          : fontSize;
 
         const textEl = (
           <text
             fill="currentColor"
             className={hero ? "text-foreground/70 hover:text-primary transition-colors" : "text-foreground/70"}
-            fontSize={fontSize}
+            fontSize={dynamicFontSize}
             fontWeight={500}
             letterSpacing={1.2}
             fontFamily="var(--font-outfit), Outfit, sans-serif"
           >
             <textPath href={`#${pathId}`} startOffset="50%" textAnchor="middle">
-              {niche.toUpperCase()}
+              {textToRender}
             </textPath>
           </text>
         );
