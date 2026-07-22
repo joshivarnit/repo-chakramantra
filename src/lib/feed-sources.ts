@@ -11,24 +11,24 @@ export interface FeedSource {
 }
 
 export const DEFAULT_FEED_SOURCES: Omit<FeedSource, "id" | "createdAt">[] = [
-  { url: "https://hnrss.org/frontpage", name: "Hacker News", category: "Technology", enabled: true },
+  { url: "https://hnrss.org/frontpage", name: "Hacker News", category: "Tech", enabled: true },
   { url: "https://www.nature.com/nature.rss", name: "Nature", category: "Science", enabled: true },
-  { url: "https://export.arxiv.org/rss/astro-ph", name: "ArXiv Astrophysics", category: "Science", enabled: true },
-  { url: "https://export.arxiv.org/rss/cs", name: "ArXiv Computer Science", category: "Technology", enabled: true },
+  { url: "https://export.arxiv.org/rss/astro-ph", name: "ArXiv Astrophysics", category: "Space", enabled: true },
+  { url: "https://export.arxiv.org/rss/cs", name: "ArXiv Computer Science", category: "AI", enabled: true },
   {
     url: "https://news.google.com/rss/search?q=DD+News+India&hl=en-IN&gl=IN&ceid=IN:en",
     name: "DD News",
-    category: "Geopolitics",
+    category: "Future",
     enabled: true,
   },
-  { url: "http://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World", category: "Geopolitics", enabled: true },
+  { url: "http://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC World", category: "Future", enabled: true },
   {
     url: "https://news.google.com/rss/search?q=Nvidia+OR+TSMC+OR+ASML+hardware&hl=en-US&gl=US&ceid=US:en",
     name: "Global Hardware",
-    category: "Technology",
+    category: "Hardware",
     enabled: true,
   },
-  { url: "https://www.espn.com/espn/rss/news", name: "ESPN", category: "Sports", enabled: true },
+  { url: "https://www.espn.com/espn/rss/news", name: "ESPN", category: "Gaming", enabled: true },
 ];
 
 function mapRow(row: Record<string, unknown>): FeedSource {

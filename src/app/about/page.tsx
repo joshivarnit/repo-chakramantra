@@ -29,7 +29,7 @@ export default function AboutPage() {
             is Chakramantra&apos;s analysis.
           </p>
           <p>
-            The insight circle — our twelve-spoke chakra — represents how ideas connect: science feeds technology,
+            The insight circle — our twenty-four-spoke chakra — represents how ideas connect: science feeds technology,
             geopolitics shapes markets, breakthroughs ripple outward. We follow those threads and explain them clearly.
           </p>
         </div>

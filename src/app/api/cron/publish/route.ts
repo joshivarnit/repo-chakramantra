@@ -14,8 +14,9 @@ export async function GET(request: Request) {
         'Auto-publish is disabled. Publish articles manually from the admin editor.',
       publishedCount: 0,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Cron Job Publish Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

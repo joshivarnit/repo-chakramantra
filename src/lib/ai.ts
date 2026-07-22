@@ -38,7 +38,7 @@ export async function analyzeContent(rawText: string, sourceUrl: string): Promis
     {
       "title": "A compelling, SEO-friendly headline in Chakramantra's voice",
       "summary": "A 2-3 sentence hook that draws readers in",
-      "genre": "One word category (e.g., Technology, Science, Geopolitics, Sports, Business)",
+      "genre": "One word category MUST BE EXACTLY ONE OF: AI, Automation, Tech, Neuroscience, IT, Gaming, Cybersec, Networking, Startups, Space, Robotics, Quantum, BioTech, Design, Data, Ethics, Privacy, Science, Future, Web3, Cloud, SaaS, Mobile, Hardware",
       "contentHtml": "The full article as semantic HTML (<h2>, <h3>, <p>, <ul>, <li>). Original prose, well-structured, retaining core insights and significantly expanded depth."
     }
 

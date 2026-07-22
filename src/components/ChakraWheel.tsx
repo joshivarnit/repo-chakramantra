@@ -2,12 +2,7 @@
 
 const SPOKES = 24;
 
-const NICHES = [
-  "AI", "Automation", "Tech", "Neuroscience", "IT", "Gaming", 
-  "Cybersec", "Networking", "Startups", "Space", "Robotics", "Quantum", 
-  "BioTech", "Design", "Data", "Ethics", "Privacy", "Science", 
-  "Future", "Web3", "Cloud", "SaaS", "Mobile", "Hardware"
-];
+import { CHAKRA_TOPICS as NICHES } from "@/lib/constants";
 
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = ((angleDeg - 90) * Math.PI) / 180;

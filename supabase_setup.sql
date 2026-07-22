@@ -87,12 +87,12 @@ create policy "Authenticated users can manage feed sources"
 
 -- Seed default feeds (safe to re-run: ON CONFLICT DO NOTHING)
 insert into public.feed_sources (url, name, category, enabled) values
-  ('https://hnrss.org/frontpage', 'Hacker News', 'Technology', true),
+  ('https://hnrss.org/frontpage', 'Hacker News', 'Tech', true),
   ('https://www.nature.com/nature.rss', 'Nature', 'Science', true),
-  ('https://export.arxiv.org/rss/astro-ph', 'ArXiv Astrophysics', 'Science', true),
-  ('https://export.arxiv.org/rss/cs', 'ArXiv Computer Science', 'Technology', true),
-  ('https://news.google.com/rss/search?q=DD+News+India&hl=en-IN&gl=IN&ceid=IN:en', 'DD News', 'Geopolitics', true),
-  ('http://feeds.bbci.co.uk/news/world/rss.xml', 'BBC World', 'Geopolitics', true),
-  ('https://news.google.com/rss/search?q=Nvidia+OR+TSMC+OR+ASML+hardware&hl=en-US&gl=US&ceid=US:en', 'Global Hardware', 'Technology', true),
-  ('https://www.espn.com/espn/rss/news', 'ESPN', 'Sports', true)
+  ('https://export.arxiv.org/rss/astro-ph', 'ArXiv Astrophysics', 'Space', true),
+  ('https://export.arxiv.org/rss/cs', 'ArXiv Computer Science', 'AI', true),
+  ('https://news.google.com/rss/search?q=DD+News+India&hl=en-IN&gl=IN&ceid=IN:en', 'DD News', 'Future', true),
+  ('http://feeds.bbci.co.uk/news/world/rss.xml', 'BBC World', 'Future', true),
+  ('https://news.google.com/rss/search?q=Nvidia+OR+TSMC+OR+ASML+hardware&hl=en-US&gl=US&ceid=US:en', 'Global Hardware', 'Hardware', true),
+  ('https://www.espn.com/espn/rss/news', 'ESPN', 'Gaming', true)
 on conflict (url) do nothing;
