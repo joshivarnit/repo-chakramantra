@@ -2,6 +2,7 @@
 
 const SPOKES = 24;
 
+import { useId } from "react";
 import { CHAKRA_TOPICS as DEFAULT_NICHES } from "@/lib/constants";
 
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
@@ -14,12 +15,14 @@ function describeArc(
   cy: number,
   r: number,
   startAngle: number,
-  endAngle: number
+  endAngle: number,
+  clockwise: boolean = false
 ) {
-  const start = polarToCartesian(cx, cy, r, endAngle);
-  const end = polarToCartesian(cx, cy, r, startAngle);
-  const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
+  const start = polarToCartesian(cx, cy, r, clockwise ? startAngle : endAngle);
+  const end = polarToCartesian(cx, cy, r, clockwise ? endAngle : startAngle);
+  const largeArc = Math.abs(endAngle - startAngle) <= 180 ? 0 : 1;
+  const sweep = clockwise ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} ${sweep} ${end.x} ${end.y}`;
 }
 
 function ChakraSvg({
@@ -31,6 +34,7 @@ function ChakraSvg({
   hero?: boolean;
   topics?: string[];
 }) {
+  const idPrefix = useId();
   const SPOKES = 24;
   const displayTopics = Array.from({ length: SPOKES }, (_, i) => {
     const sourceList = topics && topics.length > 0 ? topics : DEFAULT_NICHES;
@@ -126,14 +130,18 @@ function ChakraSvg({
       {displayTopics.map((niche, i) => {
         const startAngle = i * spokeStep + 0.5;
         const endAngle = (i + 1) * spokeStep - 0.5;
-        const pathId = `text-arc-${i}`;
-        const arcPath = describeArc(cx, cy, labelMidR, startAngle, endAngle);
+        const pathId = `${idPrefix}-text-arc-${i}`;
+        const midAngle = (i + 0.5) * spokeStep;
+        
+        // Make text always read upright (clockwise on top half, counter-clockwise on bottom half)
+        const isTopHalf = midAngle > 270 || midAngle < 90;
+        const arcPath = describeArc(cx, cy, labelMidR, startAngle, endAngle, isTopHalf);
 
         const textToRender = niche.toUpperCase();
         // Calculate max available arc length in pixels for this 14-degree wedge
         const arcLen = (2 * Math.PI * labelMidR) * ((spokeStep - 1) / 360);
-        // Approximate width of the text (0.6 is a standard average char width ratio for sans-serif)
-        const approxWidth = textToRender.length * (fontSize * 0.6);
+        // Estimate width (0.85 per char + letterSpacing of 1.2px) to ensure we scale down enough to fit
+        const approxWidth = textToRender.length * (fontSize * 0.85 + 1.2);
         
         // Scale down the font size if the text is too long to fit in the wedge
         const dynamicFontSize = approxWidth > arcLen 
