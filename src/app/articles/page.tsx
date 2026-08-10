@@ -27,9 +27,8 @@ export default async function ArticlesPage({
     getPublishedGenres(),
   ]);
 
-  // Merge the published genres with the default CHAKRA_TOPICS so the filter 
-  // list always has the 24 wheel topics as a directory of content.
-  const displayGenres = Array.from(new Set([...CHAKRA_TOPICS, ...publishedGenres])).sort();
+  // Always strictly use the 24 wheel topics for the filter list.
+  const displayGenres = [...CHAKRA_TOPICS].sort();
 
   return (
     <div className="flex min-h-screen flex-col">

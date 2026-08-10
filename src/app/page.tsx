@@ -6,6 +6,8 @@ import ChakraWheel from "@/components/ChakraWheel";
 import NewsletterForm from "@/components/NewsletterForm";
 import SiteHeader from "@/components/SiteHeader";
 
+import ScrollWheelAnimation from "@/components/ScrollWheelAnimation";
+
 export default async function Home() {
   const [posts, genres] = await Promise.all([
     getPostsByStatus('published'),
@@ -17,33 +19,7 @@ export default async function Home() {
       <SiteHeader />
 
       <main className="flex-1">
-        <section className="relative overflow-hidden py-16 lg:py-24 border-b border-white/5 min-h-[calc(100vh-4rem)] flex items-center">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-background to-background pointer-events-none"></div>
-          <div className="container relative mx-auto px-4">
-            <div className="flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-24">
-              <div className="relative flex justify-center w-full lg:w-7/12 order-2 lg:order-1 mt-12 lg:mt-0">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] sm:w-[1000px] sm:h-[1000px] bg-accent/25 blur-[120px] rounded-full pointer-events-none"></div>
-                <div className="relative scale-75 sm:scale-100 lg:scale-110 origin-center transition-transform duration-500 z-10 group">
-                  <ChakraWheel size={800} isHero={true} />
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:w-5/12 order-1 lg:order-2 z-20">
-                <h1 className="font-heading text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight text-gradient mb-6 leading-tight">
-                  Chakramantra <br className="hidden sm:block" /> the insight circle
-                </h1>
-                <p className="text-lg sm:text-xl text-foreground/70 mb-8 max-w-lg leading-relaxed">
-                  Original analysis on technology, science, and the forces shaping our world — written clearly, researched deeply, edited with care.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 w-full justify-center lg:justify-start">
-                  <Link href="/articles" className="inline-flex h-12 items-center justify-center rounded-md bg-foreground px-8 text-sm font-medium text-background transition-colors hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    Read Articles <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        <ScrollWheelAnimation postIds={posts.map(p => p.id)} />
 
         <section id="latest" className="py-20 relative">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-accent/5 via-background to-background pointer-events-none"></div>
