@@ -8,6 +8,7 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { CHAKRA_TOPICS } from "@/lib/constants";
 import "../app/scroll-wheel.css";
+import CMChessApp from "./chess/CMChessApp";
 
 // Register ScrollTrigger once
 if (typeof window !== "undefined") {
@@ -206,14 +207,8 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
       </div>
 
       {/* Embedded Chess Game */}
-      <div className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[350px] h-[550px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 hidden md:block bg-[#161512]">
-        <iframe 
-          src="https://lichess.org/tv/frame?theme=brown&bg=dark" 
-          width="100%" 
-          height="100%" 
-          allowTransparency={true} 
-          frameBorder="0"
-        ></iframe>
+      <div className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[350px] h-[550px] hidden md:block">
+        <CMChessApp />
       </div>
 
     </section>
