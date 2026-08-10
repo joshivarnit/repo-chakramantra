@@ -23,13 +23,12 @@
     align-items: center;
 }
 
-/* The wheel positioned on the right side */
+/* The wheel positioned in the center */
 .scroll-wheel-wrapper {
     position: absolute;
-    right: 5%; 
-    left: auto;
+    left: 50%; 
     top: 50%;
-    transform: translateY(-50%);
+    transform: translate(-50%, -50%);
     width: 625px;
     height: 625px;
     display: flex;
@@ -77,14 +76,14 @@
     fill: #39ff14;
 }
 
-/* The text container overlaying the top-left */
+/* The text container overlaying the left */
 .scroll-text-container-wrapper {
     position: absolute;
     left: 5%;
     right: auto;
-    top: 10%;
-    transform: none;
-    width: 45%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 25%;
     height: 450px;
     overflow: hidden;
     /* Fade out the top and bottom of the list for a teleprompter effect */
@@ -108,9 +107,10 @@
     font-size: 2.5rem; /* Made bigger */
     font-weight: 800;
     color: hsl(var(--primary));
-    background: linear-gradient(-90deg, transparent, rgba(255, 0, 255, 0.15));
+    background: linear-gradient(90deg, rgba(255, 0, 255, 0.25), transparent);
+    backdrop-filter: blur(8px);
     border-right: none;
-    border-left: 3px solid #ff00ff;
+    border-left: 4px solid #ff00ff;
     margin-bottom: 12px;
     border-radius: 4px;
     opacity: 0; /* Hidden initially */
@@ -124,7 +124,7 @@
 }
 
 .scroll-text-item:hover {
-    background: linear-gradient(-90deg, transparent, rgba(255, 0, 255, 0.3));
+    background: linear-gradient(90deg, rgba(255, 0, 255, 0.35), rgba(255, 0, 255, 0.1));
     box-shadow: -10px 0 25px -5px rgba(255, 0, 255, 0.4);
 }
 
@@ -144,9 +144,9 @@
     }
     .scroll-wheel-wrapper {
         position: relative;
-        right: auto;
+        left: 50%;
         top: 0;
-        transform: scale(0.75);
+        transform: translateX(-50%) scale(0.75);
     }
     .scroll-text-container-wrapper {
         position: relative;

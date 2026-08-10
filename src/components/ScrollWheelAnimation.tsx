@@ -205,20 +205,15 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
 
       </div>
 
-      {/* APK Download Card */}
-      <div className="absolute bottom-12 right-12 glass p-6 rounded-2xl border border-white/10 z-30 flex flex-col items-center bg-background/80 backdrop-blur-md shadow-2xl">
-        <div className="text-2xl font-bold text-primary mb-2 font-heading">CMchess App</div>
-        <p className="text-sm text-foreground/80 mb-6 text-center max-w-[220px]">
-          Download our new mobile app for the full Chakramantra experience on the go.
-        </p>
-        <a 
-          href="/CMchess.apk" 
-          download 
-          className="bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-2.5 px-6 rounded-full transition-colors flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          Download APK
-        </a>
+      {/* Embedded Chess Game */}
+      <div className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[350px] h-[550px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 hidden md:block bg-[#161512]">
+        <iframe 
+          src="https://lichess.org/tv/frame?theme=brown&bg=dark" 
+          width="100%" 
+          height="100%" 
+          allowTransparency={true} 
+          frameBorder="0"
+        ></iframe>
       </div>
 
     </section>
