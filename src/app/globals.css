@@ -2,10 +2,12 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #020617;
+  --background: #08080c;
   --foreground: #f8fafc;
-  --primary: #3b82f6;
-  --accent: #8b5cf6;
+  --primary: #a855f7;
+  --accent: #06b6d4;
+  --card-bg: rgba(18, 18, 26, 0.75);
+  --card-border: rgba(255, 255, 255, 0.08);
 }
 
 @theme inline {
@@ -13,98 +15,166 @@
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-accent: var(--accent);
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-outfit);
+  --font-sans: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: var(--font-outfit), 'Outfit', sans-serif;
 }
 
 body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  background-image: linear-gradient(to bottom, rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.95)), url('/bg-mountains.png');
-  background-size: cover;
+  background-color: var(--background);
+  color: var(--foreground);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.12) 0%, transparent 60%),
+    radial-gradient(circle at 80% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+    linear-gradient(to bottom, #08080c, #050508);
   background-attachment: fixed;
-  background-position: center;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .glass {
-  background: rgba(2, 6, 23, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(12, 12, 18, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
 }
 
 .glass-card {
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(139, 92, 246, 0.15);
+  background: rgba(24, 24, 36, 0.85);
+  border-color: rgba(168, 85, 247, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(168, 85, 247, 0.2);
   transform: translateY(-2px);
 }
 
 .text-gradient {
-  background: linear-gradient(to right, #60a5fa, #c084fc);
+  background: linear-gradient(135deg, #f8fafc 0%, #c084fc 50%, #38bdf8 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* WYSIWYG editor (Figma-style rich text surface) */
+.text-gradient-purple {
+  background: linear-gradient(135deg, #e9d5ff 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-cyan {
+  background: linear-gradient(135deg, #bae6fd 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* High contrast typography for article content */
+.wysiwyg-editor {
+  color: #cbd5e1;
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
 .wysiwyg-editor h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
-  margin: 1.25rem 0 0.75rem;
-  line-height: 1.2;
+  font-family: var(--font-heading);
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 2rem 0 1rem;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
 }
 
 .wysiwyg-editor h2 {
-  font-size: 1.5rem;
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
   font-weight: 700;
-  margin: 1rem 0 0.5rem;
+  color: #f8fafc;
+  margin: 1.75rem 0 0.75rem;
   line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .wysiwyg-editor h3 {
-  font-size: 1.25rem;
+  font-family: var(--font-heading);
+  font-size: 1.35rem;
   font-weight: 600;
-  margin: 0.75rem 0 0.5rem;
+  color: #f1f5f9;
+  margin: 1.25rem 0 0.5rem;
 }
 
 .wysiwyg-editor p {
-  margin: 0.5rem 0;
-  line-height: 1.75;
+  margin: 1rem 0;
+  line-height: 1.85;
+  color: #cbd5e1;
 }
 
 .wysiwyg-editor ul,
 .wysiwyg-editor ol {
   padding-left: 1.5rem;
-  margin: 0.5rem 0;
+  margin: 1rem 0;
+  color: #cbd5e1;
+}
+
+.wysiwyg-editor li {
+  margin: 0.35rem 0;
 }
 
 .wysiwyg-editor blockquote {
-  border-left: 3px solid rgb(59 130 246);
-  padding-left: 1rem;
-  margin: 1rem 0;
-  color: rgb(113 113 122);
+  border-left: 4px solid #a855f7;
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  color: #94a3b8;
   font-style: italic;
+  background: rgba(168, 85, 247, 0.05);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-radius: 0 8px 8px 0;
 }
 
 .wysiwyg-editor a {
-  color: rgb(37 99 235);
+  color: #38bdf8;
   text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
 }
 
-.wysiwyg-editor p.is-editor-empty:first-child::before {
-  color: rgb(161 161 170);
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
+.wysiwyg-editor a:hover {
+  color: #c084fc;
+}
+
+.wysiwyg-editor code {
+  background: rgba(30, 41, 59, 0.8);
+  color: #a78bfa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #08080c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.4);
 }

@@ -2,6 +2,7 @@
 
 import React, { useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
@@ -9,7 +10,6 @@ import { useGSAP } from "@gsap/react";
 import { CHAKRA_TOPICS } from "@/lib/constants";
 import "../app/scroll-wheel.css";
 
-// Register ScrollTrigger once
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
@@ -19,36 +19,32 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
   const router = useRouter();
   
   const numSlices = CHAKRA_TOPICS.length;
-  const radius = 225; // increased overall size from 400 to 500
+  const radius = 225;
   const center = 250; 
   const sliceAngle = 360 / numSlices;
   const textRadius = 205; 
 
   useGSAP(() => {
-    // Prevent errors on empty refs
     if (!containerRef.current) return;
     
-    // Create the timeline
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: "center center",
-        end: "+=4000",
+        end: "+=3500",
         pin: true,
         scrub: 1,
       }
     });
 
-    // 1. Rotate the whole wheel counter-clockwise by 360 degrees
-    tl.to(".scroll-wheel-svg", {
+    // 1. Rotate the whole wheel counter-clockwise
+    tl.to(".scroll-wheel-svg, .chakra-ring-overlay", {
       rotation: -360,
       duration: 1,
       ease: "none"
     }, 0);
 
-    // 2. Scroll the text container UP vertically
-    // 12px margin-bottom per item + 15px top/bottom padding = total height approx
-    // Using scrollHeight for exactness
+    // 2. Scroll the topic container UP
     const textContainer = document.querySelector(".scroll-text-container") as HTMLElement;
     if (textContainer) {
       const scrollDistance = textContainer.scrollHeight - 350; 
@@ -59,15 +55,13 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
       }, 0);
     }
 
-    // 3. Animate each slice popping out and its text fading in
+    // 3. Animate each slice
     const step = 1 / numSlices;
-    const isMobile = window.innerWidth <= 850;
 
     for (let i = 1; i <= numSlices; i++) {
       const triggerProgress = (i - 1) * step;
       const sliceDuration = step * 0.8;
       
-      // A. Slice moves outwards
       tl.to(`.scroll-slice-${i}`, {
         x: 60,
         y: -60,
@@ -76,7 +70,6 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
         ease: "power2.inOut"
       }, triggerProgress);
 
-      // B. Text fades in and slides into view
       tl.to(`.scroll-text-item-${i}`, {
         opacity: 1,
         x: 0,
@@ -85,9 +78,8 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
         ease: "power2.out"
       }, triggerProgress);
 
-      // C. Text fades out as it scrolls past
       tl.to(`.scroll-text-item-${i}`, {
-        opacity: 0.2,
+        opacity: 0.3,
         duration: sliceDuration,
         ease: "power2.in"
       }, triggerProgress + sliceDuration + (step * 2));
@@ -98,7 +90,7 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
     <section className="scroll-pin-section" ref={containerRef}>
       <div className="scroll-animation-container">
         
-        {/* Text area for the topics */}
+        {/* Topic selector */}
         <div className="scroll-text-container-wrapper">
           <div className="scroll-text-container">
             {CHAKRA_TOPICS.map((topic, i) => (
@@ -113,25 +105,34 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
           </div>
         </div>
         
-        {/* Wheel area */}
+        {/* 3D Realistic Chakra Wheel Area */}
         <div className="scroll-wheel-wrapper">
+          {/* Glowing 3D background image */}
+          <div className="absolute inset-0 rounded-full opacity-40 mix-blend-screen pointer-events-none overflow-hidden scale-110">
+            <Image
+              src="/chakra-3d-ring.jpg"
+              alt="3D Chakra Energy Ring"
+              fill
+              className="object-cover rounded-full chakra-ring-overlay"
+              priority
+            />
+          </div>
+
           <svg className="scroll-wheel-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#39ff14" />
-                <stop offset="100%" stopColor="#ff00ff" />
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#06b6d4" />
               </radialGradient>
             </defs>
 
-            {/* Outer solid boundary */}
             <circle cx={center} cy={center} r={radius} className="scroll-wheel-bg" />
             
-            {/* Dynamic Slices */}
             <g>
               {CHAKRA_TOPICS.map((topic, i) => {
                 const endAngleRad = sliceAngle * (Math.PI / 180);
-                const x1 = center; // 12 o'clock x
-                const y1 = center - radius; // 12 o'clock y
+                const x1 = center; 
+                const y1 = center - radius; 
                 const x2 = center + radius * Math.sin(endAngleRad);
                 const y2 = center - radius * Math.cos(endAngleRad);
                 
@@ -141,7 +142,6 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
                 const tx = center + textRadius * Math.sin(midAngleRad);
                 const ty = center - textRadius * Math.cos(midAngleRad);
                 
-                // SVG rotation transformation for each slice
                 const rotation = i * sliceAngle;
 
                 return (
@@ -157,11 +157,11 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
                           x={tx}
                           y={ty}
                           transform={`rotate(${sliceAngle / 2} ${tx} ${ty})`}
-                          fill="#39ff14"
+                          fill="#f8fafc"
                           textAnchor="middle"
                           dominantBaseline="middle"
                           fontSize="6.5"
-                          fontWeight="500"
+                          fontWeight="700"
                           letterSpacing="0.5"
                           style={{ fontFamily: 'var(--font-outfit), Outfit, sans-serif' }}
                         >
@@ -175,12 +175,12 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
             </g>
           </svg>
 
-          {/* Static Inner Hub Button (separated to prevent rotation) */}
+          {/* Center Random Article Hub */}
           <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
             <defs>
               <radialGradient id="hubGradOverlay" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#39ff14" />
-                <stop offset="100%" stopColor="#ff00ff" />
+                <stop offset="0%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#06b6d4" />
               </radialGradient>
             </defs>
             <g 
@@ -195,28 +195,30 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
               style={{ cursor: 'pointer', pointerEvents: 'auto' }} 
               className="wheel-center-button"
             >
-              <circle cx={center} cy={center} r="65" fill="hsl(var(--background))" stroke="#39ff14" strokeWidth="2" />
-              <circle cx={center} cy={center} r="55" fill="url(#hubGradOverlay)" opacity="0.8" />
-              <text x={center} y={center - 8} fill="#fff" textAnchor="middle" fontSize="14" fontWeight="bold">Random</text>
-              <text x={center} y={center + 12} fill="#fff" textAnchor="middle" fontSize="14" fontWeight="bold">Articles</text>
+              <circle cx={center} cy={center} r="65" fill="#08080c" stroke="#a855f7" strokeWidth="2.5" />
+              <circle cx={center} cy={center} r="55" fill="url(#hubGradOverlay)" opacity="0.85" />
+              <text x={center} y={center - 8} fill="#fff" textAnchor="middle" fontSize="14" fontWeight="800">Explore</text>
+              <text x={center} y={center + 12} fill="#fff" textAnchor="middle" fontSize="14" fontWeight="800">Random</text>
             </g>
           </svg>
         </div>
 
       </div>
 
-      {/* Chess App Mini Preview — Links to full app */}
+      {/* ChakraChess Preview Card */}
       <Link
         href="/chess"
-        className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[200px] hidden md:flex flex-col items-center gap-3 p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 hover:border-primary/30 hover:bg-black/50 transition-all duration-300 group cursor-pointer no-underline"
+        className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[210px] hidden md:flex flex-col items-center gap-3 p-5 rounded-2xl bg-slate-950/70 backdrop-blur-xl border border-white/10 hover:border-purple-500/40 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 group cursor-pointer no-underline"
       >
-        <div className="text-3xl">♟</div>
-        <div className="text-center">
-          <div className="text-sm font-bold text-white group-hover:text-primary transition-colors">ChakraChess</div>
-          <div className="text-[10px] text-gray-400 mt-1">Play &amp; Analyze Free</div>
+        <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+          ♟
         </div>
-        <div className="text-[10px] text-gray-500 flex items-center gap-1 group-hover:text-primary/70 transition-colors">
-          Open App →
+        <div className="text-center">
+          <div className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">ChakraChess</div>
+          <div className="text-xs text-gray-400 mt-1">Stockfish 16 • 15 Lines</div>
+        </div>
+        <div className="text-xs text-cyan-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Launch App →
         </div>
       </Link>
 
