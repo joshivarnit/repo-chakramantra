@@ -20,18 +20,26 @@ export async function getPostsByStatus(status: Post['status']): Promise<Post[]> 
   const { data, error } = await supabase
     .from('posts')
     .select('*')
-    .eq('status', status)
-    .order('date', { ascending: false });
+    .eq('status', status);
 
   if (error) {
     console.error('Error fetching posts:', error);
     return [];
   }
 
-  return (data || []).map(row => ({
+  const posts = (data || []).map(row => ({
     ...row,
     readTime: row.read_time
   })) as Post[];
+
+  // Sort chronologically by real Date timestamp descending (newest first)
+  posts.sort((a, b) => {
+    const timeA = new Date(a.date).getTime() || 0;
+    const timeB = new Date(b.date).getTime() || 0;
+    return timeB - timeA;
+  });
+
+  return posts;
 }
 
 export async function getPublishedPosts(filters?: {
@@ -175,13 +183,11 @@ export async function publishOldestDrafts(limit: number): Promise<number> {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Fetch the oldest drafts
+  // Fetch all drafts and sort chronologically
   const { data: drafts, error: fetchError } = await supabaseAdmin
     .from('posts')
-    .select('id')
-    .eq('status', 'draft')
-    .order('date', { ascending: true })
-    .limit(limit);
+    .select('id, date')
+    .eq('status', 'draft');
 
   if (fetchError) {
     console.error('Error fetching oldest drafts:', fetchError);
@@ -192,7 +198,15 @@ export async function publishOldestDrafts(limit: number): Promise<number> {
     return 0;
   }
 
-  const draftIds = drafts.map(d => d.id);
+  // Sort drafts chronologically by Date ascending (oldest first)
+  drafts.sort((a, b) => {
+    const timeA = new Date(a.date).getTime() || 0;
+    const timeB = new Date(b.date).getTime() || 0;
+    return timeA - timeB;
+  });
+
+  const selectedDrafts = drafts.slice(0, limit);
+  const draftIds = selectedDrafts.map(d => d.id);
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // Update their status to published and update the date to today
