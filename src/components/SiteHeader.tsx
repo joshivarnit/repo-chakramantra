@@ -28,6 +28,12 @@ export default function SiteHeader() {
             Articles
           </Link>
           <Link
+            href="/chess"
+            className="transition-colors hover:text-primary text-foreground/60 font-semibold flex items-center gap-1.5"
+          >
+            <span className="text-base leading-none">♟</span> ChakraChess
+          </Link>
+          <Link
             href="/about"
             className="transition-colors hover:text-foreground/80 text-foreground/60"
           >

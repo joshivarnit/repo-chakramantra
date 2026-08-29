@@ -8,6 +8,8 @@ import SiteHeader from "@/components/SiteHeader";
 
 import ScrollWheelAnimation from "@/components/ScrollWheelAnimation";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const [posts, genres] = await Promise.all([
     getPostsByStatus('published'),

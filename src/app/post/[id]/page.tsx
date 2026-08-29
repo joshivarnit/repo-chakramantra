@@ -5,6 +5,8 @@ import { getPostById } from "@/lib/db";
 import { publicAuthor } from "@/lib/public-display";
 import SiteHeader from "@/components/SiteHeader";
 
+export const dynamic = 'force-dynamic';
+
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const post = await getPostById(resolvedParams.id);

@@ -8,7 +8,6 @@ import ScrollTrigger from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { CHAKRA_TOPICS } from "@/lib/constants";
 import "../app/scroll-wheel.css";
-import CMChessApp from "./chess/CMChessApp";
 
 // Register ScrollTrigger once
 if (typeof window !== "undefined") {
@@ -206,10 +205,20 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
 
       </div>
 
-      {/* Embedded Chess Game */}
-      <div className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[350px] h-[550px] hidden md:block">
-        <CMChessApp />
-      </div>
+      {/* Chess App Mini Preview — Links to full app */}
+      <Link
+        href="/chess"
+        className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[200px] hidden md:flex flex-col items-center gap-3 p-4 rounded-2xl bg-black/40 backdrop-blur-md border border-white/10 hover:border-primary/30 hover:bg-black/50 transition-all duration-300 group cursor-pointer no-underline"
+      >
+        <div className="text-3xl">♟</div>
+        <div className="text-center">
+          <div className="text-sm font-bold text-white group-hover:text-primary transition-colors">ChakraChess</div>
+          <div className="text-[10px] text-gray-400 mt-1">Play &amp; Analyze Free</div>
+        </div>
+        <div className="text-[10px] text-gray-500 flex items-center gap-1 group-hover:text-primary/70 transition-colors">
+          Open App →
+        </div>
+      </Link>
 
     </section>
   );
