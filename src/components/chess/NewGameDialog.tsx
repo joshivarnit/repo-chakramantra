@@ -34,7 +34,7 @@ export default function NewGameDialog({ isOpen, onClose, onStart }: NewGameDialo
                 className={`chess-dialog-toggle ${mode === 'play' ? 'active' : ''}`}
                 onClick={() => setMode('play')}
               >
-                ♟ Play vs Engine
+                ♟ Play vs CPU
               </button>
               <button
                 className={`chess-dialog-toggle ${mode === 'analysis' ? 'active' : ''}`}

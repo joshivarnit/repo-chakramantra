@@ -15,15 +15,232 @@
   flex-direction: column;
 }
 
+/* ── Top App Bar ── */
+.chess-top-bar {
+  height: 48px;
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+  z-index: 30;
+}
+
+.chess-back-link {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.15s;
+}
+
+.chess-back-link:hover {
+  color: #a855f7;
+}
+
+.chess-top-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chess-icon {
+  font-size: 18px;
+  color: #a855f7;
+}
+
+.chess-title-text {
+  font-family: var(--font-outfit), 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: #f8fafc;
+  letter-spacing: -0.3px;
+}
+
+.chess-engine-badge {
+  font-size: 10px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chess-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chess-apk-badge {
+  background: rgba(6, 182, 212, 0.15);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+
+.chess-apk-badge:hover {
+  background: rgba(6, 182, 212, 0.3);
+  color: #fff;
+}
+
+.chess-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chess-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ── Mobile View Tabs ── */
+.chess-mobile-tabs {
+  display: none;
+  background: rgba(15, 23, 42, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 12px;
+  gap: 6px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.mobile-tab-btn {
+  flex: 1;
+  min-width: 70px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.mobile-tab-btn.active {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: #e9d5ff;
+}
+
+/* ── Captured Pieces Bar ── */
+.captured-pieces-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(70vh, 560px);
+  max-width: 100%;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.bottom-captured-bar {
+  margin-top: 4px;
+}
+
+.captured-pieces-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 20px;
+}
+
+.captured-piece-glyph {
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.material-advantage-pill {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(74, 222, 128, 0.15);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  color: #4ade80;
+  padding: 1px 5px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+.opponent-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mobile-action-toolbar {
+  display: none;
+  width: min(70vh, 560px);
+  max-width: 100%;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mobile-action-toolbar .ctrl-btn {
+  flex: 1;
+  padding: 10px 4px;
+}
+
+.mobile-action-toolbar .ctrl-action-btn {
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mobile-action-toolbar .primary-btn {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: rgba(168, 85, 247, 0.4);
+  color: #e9d5ff;
+}
+
 .chess-app-layout {
   display: flex;
-  height: 100vh;
+  flex: 1;
+  height: calc(100vh - 48px);
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
   padding: 16px;
   gap: 16px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* ── Left Panel (Move History & Top 15 Moves) ── */
@@ -1248,72 +1465,156 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* ── Responsive ── */
+/* ── Responsive Mobile & Tablet Layout ── */
 @media (max-width: 1024px) {
   .chess-app {
-    height: auto;
-    overflow-y: auto;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .chess-top-bar {
+    padding: 0 12px;
+  }
+
+  .chess-mobile-tabs {
+    display: flex;
   }
 
   .chess-app-layout {
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-    padding: 12px;
-    gap: 12px;
+    flex: 1;
+    height: calc(100dvh - 94px);
+    padding: 8px;
+    gap: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .chess-left-panel,
+  .chess-center,
+  .chess-right-panel {
+    display: none;
+    width: 100%;
+    height: 100%;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chess-left-panel.mobile-visible,
+  .chess-center.mobile-visible,
+  .chess-right-panel.mobile-visible {
+    display: flex;
   }
 
   .chess-left-panel {
-    width: 100%;
-    order: 3;
-    max-height: 240px;
-  }
-
-  .chess-center {
-    order: 1;
-    height: auto;
-  }
-
-  .chess-board-wrapper {
-    width: min(80vw, 480px);
-    height: min(80vw, 480px);
-  }
-
-  .chess-engine-bar {
-    width: min(80vw, 480px);
+    max-height: 100%;
+    overflow-y: auto;
   }
 
   .chess-right-panel {
-    width: 100%;
-    order: 2;
-    height: auto;
-    flex-direction: row;
-    flex-wrap: wrap;
+    max-height: 100%;
+    overflow-y: auto;
+    padding-bottom: 16px;
+  }
+
+  .chess-center {
+    justify-content: flex-start;
+    align-items: center;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+
+  .chess-board-area {
     gap: 8px;
+    max-height: none;
   }
 
-  .chess-mode-badge {
-    flex: 0 0 100%;
-  }
-
-  .game-controls {
-    flex: 1;
-    min-width: 200px;
-  }
-
-  .chess-quick-actions {
-    flex-direction: row;
-    gap: 6px;
-  }
-}
-
-@media (max-width: 640px) {
   .chess-board-wrapper {
-    width: min(92vw, 360px);
-    height: min(92vw, 360px);
+    width: min(calc(100vw - 44px), calc(100dvh - 270px), 430px);
+    height: min(calc(100vw - 44px), calc(100dvh - 270px), 430px);
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+  }
+
+  .eval-bar-container {
+    height: min(calc(100vw - 44px), calc(100dvh - 270px), 430px);
+    width: 18px;
+  }
+
+  .eval-bar-track {
+    width: 12px;
   }
 
   .chess-engine-bar {
-    width: min(92vw, 360px);
+    width: min(calc(100vw - 44px), calc(100dvh - 270px), 430px);
+    margin-top: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .captured-pieces-bar {
+    width: min(calc(100vw - 44px), calc(100dvh - 270px), 430px);
+  }
+
+  .mobile-action-toolbar {
+    display: flex;
+    width: min(calc(100vw - 44px), calc(100dvh - 270px), 430px);
+  }
+
+  .chess-dialog {
+    max-width: min(92vw, 440px);
+    max-height: 85dvh;
+    margin: 16px;
+  }
+
+  .chess-dialog-body {
+    max-height: 60dvh;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .chess-top-bar {
+    padding: 0 8px;
+    height: 44px;
+  }
+
+  .chess-title-text {
+    font-size: 14px;
+  }
+
+  .chess-engine-badge {
+    display: none;
+  }
+
+  .chess-mobile-tabs {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .mobile-tab-btn {
+    padding: 6px 6px;
+    font-size: 11px;
+    min-width: 60px;
+  }
+
+  .chess-board-wrapper {
+    width: min(calc(100vw - 36px), calc(100dvh - 260px), 360px);
+    height: min(calc(100vw - 36px), calc(100dvh - 260px), 360px);
+  }
+
+  .eval-bar-container {
+    height: min(calc(100vw - 36px), calc(100dvh - 260px), 360px);
+    width: 14px;
+  }
+
+  .eval-bar-track {
+    width: 10px;
+  }
+
+  .chess-engine-bar,
+  .captured-pieces-bar,
+  .mobile-action-toolbar {
+    width: min(calc(100vw - 36px), calc(100dvh - 260px), 360px);
   }
 }

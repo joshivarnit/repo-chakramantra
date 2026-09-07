@@ -16,13 +16,42 @@ export interface Post {
 }
 
 export async function getPostsByStatus(status: Post['status']): Promise<Post[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('status', status);
+  let data: any[] | null = null;
+  let error: any = null;
 
-  if (error) {
+  try {
+    const supabase = await createClient();
+    const res = await supabase
+      .from('posts')
+      .select('*')
+      .eq('status', status);
+    data = res.data;
+    error = res.error;
+  } catch (err) {
+    error = err;
+  }
+
+  // Fallback to service role client if anon fails or returned empty
+  if ((error || !data) && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const resAdmin = await supabaseAdmin
+        .from('posts')
+        .select('*')
+        .eq('status', status);
+      if (resAdmin.data) {
+        data = resAdmin.data;
+        error = null;
+      }
+    } catch (adminErr) {
+      console.error('Admin client fallback error:', adminErr);
+    }
+  }
+
+  if (error && !data) {
     console.error('Error fetching posts:', error);
     return [];
   }
@@ -65,13 +94,40 @@ export async function getPublishedPosts(filters?: {
 }
 
 export async function getPublishedGenres(): Promise<string[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('posts')
-    .select('genre')
-    .eq('status', 'published');
+  let data: any[] | null = null;
+  let error: any = null;
 
-  if (error) {
+  try {
+    const supabase = await createClient();
+    const res = await supabase
+      .from('posts')
+      .select('genre')
+      .eq('status', 'published');
+    data = res.data;
+    error = res.error;
+  } catch (err) {
+    error = err;
+  }
+
+  if ((error || !data) && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const resAdmin = await supabaseAdmin
+        .from('posts')
+        .select('genre')
+        .eq('status', 'published');
+      if (resAdmin.data) {
+        data = resAdmin.data;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (error && !data) {
     console.error('Error fetching genres:', error);
     return [];
   }
@@ -81,14 +137,42 @@ export async function getPublishedGenres(): Promise<string[]> {
 }
 
 export async function getPostById(id: string): Promise<Post | undefined> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('id', id)
-    .single();
+  let data: any = null;
+  let error: any = null;
 
-  if (error || !data) {
+  try {
+    const supabase = await createClient();
+    const res = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+    data = res.data;
+    error = res.error;
+  } catch (err) {
+    error = err;
+  }
+
+  if ((error || !data) && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const resAdmin = await supabaseAdmin
+        .from('posts')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (resAdmin.data) {
+        data = resAdmin.data;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!data) {
     return undefined;
   }
 

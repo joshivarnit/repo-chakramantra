@@ -111,7 +111,7 @@ export default function AboutPage() {
                 Platform Architecture &amp; Pillars
               </h2>
               <p className="text-gray-400 text-sm md:text-base mt-2">
-                Built with agentic workflows, Stockfish WASM, and live open telemetry.
+                Built with agentic workflows, Neural Engine WASM, and live open telemetry.
               </p>
             </div>
 
@@ -132,7 +132,7 @@ export default function AboutPage() {
                 <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-6">
                   <Cpu className="h-6 w-6" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-3">ChakraChess Stockfish 16 Engine</h3>
+                <h3 className="text-xl font-bold text-white mb-3">ChakraChess Grandmaster CPU Engine</h3>
                 <p className="text-gray-300 text-sm leading-relaxed">
                   Integrated client-side WebWorker chess suite supporting 15 MultiPV candidate moves, move strength classifications (Brilliant, Mistake, Blunder), centipawn evaluation bars, and offline play.
                 </p>

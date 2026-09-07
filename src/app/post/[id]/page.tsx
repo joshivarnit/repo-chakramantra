@@ -6,6 +6,7 @@ import { publicAuthor } from "@/lib/public-display";
 import SiteHeader from "@/components/SiteHeader";
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;

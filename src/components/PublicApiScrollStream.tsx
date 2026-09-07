@@ -75,10 +75,10 @@ export default function PublicApiScrollStream() {
               <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
               Live Knowledge Telemetry
             </div>
-            <h2 className="text-3xl md:text-5xl font-heading font-extrabold text-white tracking-tight">
+            <h2 className="text-2xl sm:text-3xl md:text-5xl font-heading font-extrabold text-white tracking-tight">
               730+ Public APIs <span className="text-gradient">Engine</span>
             </h2>
-            <p className="text-gray-400 text-sm md:text-base mt-2 max-w-xl">
+            <p className="text-gray-400 text-xs sm:text-sm md:text-base mt-2 max-w-xl">
               Powering Chakramantra with live open-source telemetry across AI, Science, Finance, Crypto, and Technology.
             </p>
           </div>
@@ -99,7 +99,7 @@ export default function PublicApiScrollStream() {
         </div>
 
         {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-8 no-scrollbar scrollbar-none [-webkit-overflow-scrolling:touch] touch-pan-x">
           {categories.map((cat) => (
             <button
               key={cat}

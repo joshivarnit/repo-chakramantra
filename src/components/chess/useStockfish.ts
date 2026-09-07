@@ -134,7 +134,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
           if (currentMultiPV === 1) {
             next.evaluation = activeTurnRef.current === 'w' ? lineScore : -lineScore;
             next.isMate = isMate;
-            next.mateIn = mateIn;
+            next.mateIn = activeTurnRef.current === 'w' ? mateIn : -mateIn;
             if (pvMoves.length > 0) next.pvLine = pvMoves;
           }
 
@@ -187,9 +187,10 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   }, []);
 
   // Start analysis of a position
-  const analyze = useCallback((fen: string, depth: number = 20, activeTurn: 'w' | 'b' = 'w') => {
+  const analyze = useCallback((fen: string, depth: number = 20, activeTurn?: 'w' | 'b') => {
     if (!workerRef.current) return;
-    activeTurnRef.current = activeTurn;
+    const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
+    activeTurnRef.current = sideToMove;
     multiPvMapRef.current.clear();
     sendCommand('stop');
     sendCommand(`setoption name MultiPV value ${multipvCount}`);
@@ -199,9 +200,10 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   }, [sendCommand, multipvCount]);
 
   // Start analysis for playing
-  const play = useCallback((fen: string, depth: number = 15, activeTurn: 'w' | 'b' = 'w') => {
+  const play = useCallback((fen: string, depth: number = 15, activeTurn?: 'w' | 'b') => {
     if (!workerRef.current) return;
-    activeTurnRef.current = activeTurn;
+    const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
+    activeTurnRef.current = sideToMove;
     multiPvMapRef.current.clear();
     sendCommand('stop');
     // During actual game play search, use 1 line for maximum speed or keep multiPV

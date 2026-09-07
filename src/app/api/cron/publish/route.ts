@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { publishOldestDrafts } from "@/lib/db";
+import { revalidatePath } from "next/cache";
+
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   try {
@@ -7,12 +11,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Auto-publish is disabled — articles must be published manually from the admin dashboard.
+    const publishedCount = await publishOldestDrafts(3);
+    
+    if (publishedCount > 0) {
+      revalidatePath('/');
+      revalidatePath('/articles');
+    }
+
     return NextResponse.json({
       success: true,
-      message:
-        'Auto-publish is disabled. Publish articles manually from the admin editor.',
-      publishedCount: 0,
+      message: `Published ${publishedCount} drafts successfully.`,
+      publishedCount,
     });
   } catch (error) {
     console.error("Cron Job Publish Error:", error);

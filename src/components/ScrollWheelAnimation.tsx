@@ -27,11 +27,12 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
   useGSAP(() => {
     if (!containerRef.current) return;
     
+    const isMobile = window.innerWidth < 850;
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: containerRef.current,
         start: "center center",
-        end: "+=3500",
+        end: isMobile ? "+=1400" : "+=3500",
         pin: true,
         scrub: 1,
       }
@@ -47,9 +48,9 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
     // 2. Scroll the topic container UP
     const textContainer = document.querySelector(".scroll-text-container") as HTMLElement;
     if (textContainer) {
-      const scrollDistance = textContainer.scrollHeight - 350; 
+      const scrollDistance = isMobile ? textContainer.scrollHeight - 180 : textContainer.scrollHeight - 350; 
       tl.to(".scroll-text-container", {
-        y: -scrollDistance,
+        y: -Math.max(0, scrollDistance),
         duration: 1,
         ease: "none"
       }, 0);
@@ -57,14 +58,15 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
 
     // 3. Animate each slice
     const step = 1 / numSlices;
+    const moveOffset = isMobile ? 30 : 60;
 
     for (let i = 1; i <= numSlices; i++) {
       const triggerProgress = (i - 1) * step;
       const sliceDuration = step * 0.8;
       
       tl.to(`.scroll-slice-${i}`, {
-        x: 60,
-        y: -60,
+        x: moveOffset,
+        y: -moveOffset,
         opacity: 0,
         duration: sliceDuration,
         ease: "power2.inOut"
@@ -205,7 +207,7 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
 
       </div>
 
-      {/* ChakraChess Preview Card */}
+      {/* Desktop ChakraChess Preview Card */}
       <Link
         href="/chess"
         className="absolute right-[5%] top-1/2 -translate-y-1/2 z-30 w-[210px] hidden md:flex flex-col items-center gap-3 p-5 rounded-2xl bg-slate-950/70 backdrop-blur-xl border border-white/10 hover:border-purple-500/40 hover:shadow-2xl hover:shadow-purple-500/20 transition-all duration-300 group cursor-pointer no-underline"
@@ -215,12 +217,33 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
         </div>
         <div className="text-center">
           <div className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">ChakraChess</div>
-          <div className="text-xs text-gray-400 mt-1">Stockfish 16 • 15 Lines</div>
+          <div className="text-xs text-gray-400 mt-1">Chakra Engine • 15 Lines</div>
         </div>
         <div className="text-xs text-cyan-400 font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
           Launch App →
         </div>
       </Link>
+
+      {/* Mobile ChakraChess Banner */}
+      <div className="w-full px-4 flex md:hidden justify-center mt-3 relative z-30">
+        <Link
+          href="/chess"
+          className="w-full max-w-sm flex items-center justify-between p-3 rounded-xl bg-slate-950/85 backdrop-blur-xl border border-purple-500/30 hover:border-purple-500/60 shadow-lg shadow-purple-500/10 no-underline"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-base text-purple-300">
+              ♟
+            </div>
+            <div>
+              <div className="text-xs font-bold text-white">ChakraChess CPU</div>
+              <div className="text-[10px] text-gray-400">Play &amp; analyze chess offline</div>
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-cyan-400 flex items-center gap-1">
+            Launch →
+          </span>
+        </Link>
+      </div>
 
     </section>
   );

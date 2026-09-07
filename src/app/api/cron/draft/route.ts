@@ -20,6 +20,8 @@ function shuffle<T>(array: T[]): T[] {
 
 // Notifications removed for automated publishing
 
+export const maxDuration = 60;
+
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
 
     const shuffledFeeds = shuffle([...feeds]);
     let draftsCreated = 0;
-    const MAX_DRAFTS = 3;
+    const MAX_DRAFTS = 2;
 
     for (const feed of shuffledFeeds) {
       if (draftsCreated >= MAX_DRAFTS) break;
