@@ -78,7 +78,8 @@ export async function getPublishedPosts(filters?: {
   let posts = await getPostsByStatus('published');
 
   if (filters?.genre) {
-    posts = posts.filter((p) => p.genre === filters.genre);
+    const target = filters.genre.toLowerCase().trim();
+    posts = posts.filter((p) => p.genre && p.genre.toLowerCase().trim() === target);
   }
 
   if (filters?.query) {

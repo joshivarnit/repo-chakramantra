@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { getPostsByStatus } from "@/lib/db";
 import { publicAuthor } from "@/lib/public-display";
+import { CHAKRA_TOPICS } from "@/lib/constants";
 import ChakraWheel from "@/components/ChakraWheel";
 import NewsletterForm from "@/components/NewsletterForm";
 import SiteHeader from "@/components/SiteHeader";
@@ -25,7 +26,7 @@ export default async function Home() {
         {/* Latest Articles Section — Igloo Inc Minimalist Grid */}
         <section id="latest" className="py-24 relative border-t border-white/5 bg-[#08080c]">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-14 gap-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-widest mb-3">
                   <span className="w-2 h-2 rounded-full bg-cyan-400" />
@@ -44,6 +45,25 @@ export default async function Home() {
               >
                 View all articles <ArrowRight className="h-4 w-4" />
               </Link>
+            </div>
+
+            {/* Category Quick Filter Bar */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-10 scrollbar-none no-scrollbar">
+              <Link
+                href="/articles"
+                className="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-purple-600/30 border border-purple-500/40 text-purple-200 hover:bg-purple-600/50 transition-colors no-underline"
+              >
+                All
+              </Link>
+              {CHAKRA_TOPICS.map((topic) => (
+                <Link
+                  key={topic}
+                  href={`/articles?genre=${encodeURIComponent(topic)}`}
+                  className="shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:border-purple-500/40 hover:bg-white/10 transition-colors no-underline"
+                >
+                  {topic}
+                </Link>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

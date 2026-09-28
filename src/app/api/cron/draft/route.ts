@@ -20,6 +20,9 @@ function shuffle<T>(array: T[]): T[] {
 
 // Notifications removed for automated publishing
 
+import { CHAKRA_TOPICS } from "@/lib/constants";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
@@ -39,11 +42,44 @@ export async function GET(request: Request) {
       }, { status: 400 });
     }
 
-    const shuffledFeeds = shuffle([...feeds]);
+    // Adaptive category balancing:
+    // Query post distribution from Supabase so lagging categories are prioritized
+    const categoryCounts: Record<string, number> = {};
+    for (const cat of CHAKRA_TOPICS) {
+      categoryCounts[cat] = 0;
+    }
+
+    try {
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      const { data: posts } = await supabaseAdmin.from('posts').select('genre');
+      if (posts) {
+        for (const p of posts) {
+          if (p.genre && typeof categoryCounts[p.genre] === 'number') {
+            categoryCounts[p.genre]++;
+          }
+        }
+      }
+    } catch (countErr) {
+      console.error('Error fetching category counts for balancing:', countErr);
+    }
+
+    // Sort feeds by article count ascending so under-represented categories get top priority
+    const prioritizedFeeds = [...feeds].sort((a, b) => {
+      const countA = categoryCounts[a.category] ?? 0;
+      const countB = categoryCounts[b.category] ?? 0;
+      if (countA !== countB) {
+        return countA - countB;
+      }
+      return Math.random() - 0.5;
+    });
+
     let draftsCreated = 0;
     const MAX_DRAFTS = 2;
 
-    for (const feed of shuffledFeeds) {
+    for (const feed of prioritizedFeeds) {
       if (draftsCreated >= MAX_DRAFTS) break;
 
       try {
@@ -67,7 +103,7 @@ export async function GET(request: Request) {
 
           if (rawText.length < 500) continue;
 
-          const analyzed = await analyzeContent(rawText, item.link);
+          const analyzed = await analyzeContent(rawText, item.link, feed.category);
 
           await insertDraft({
             title: analyzed.title,
@@ -98,7 +134,7 @@ export async function GET(request: Request) {
       success: true,
       message: "Daily drafting pipeline executed successfully.",
       draftsCreated,
-      feedsChecked: shuffledFeeds.length,
+      feedsChecked: prioritizedFeeds.length,
     });
   } catch (error: unknown) {
     console.error("Cron Job Draft Error:", error);

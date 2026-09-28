@@ -12,9 +12,9 @@ export interface FeedSource {
 
 export const DEFAULT_FEED_SOURCES: Omit<FeedSource, "id" | "createdAt">[] = [
   { url: "https://export.arxiv.org/rss/cs.AI", name: "ArXiv AI", category: "AI", enabled: true },
-  { url: "https://www.eurekalert.org/rss/technology_engineering", name: "Automation News", category: "Automation", enabled: true },
+  { url: "https://news.google.com/rss/search?q=automation+technology&hl=en-US&gl=US&ceid=US:en", name: "Automation Technology News", category: "Automation", enabled: true },
   { url: "https://hnrss.org/frontpage", name: "Hacker News", category: "Tech", enabled: true },
-  { url: "https://export.arxiv.org/rss/q-bio.NC", name: "ArXiv Neuroscience", category: "Neuroscience", enabled: true },
+  { url: "https://neurosciencenews.com/feed/", name: "Neuroscience News", category: "Neuroscience", enabled: true },
   { url: "https://www.computerworld.com/index.rss", name: "Computerworld", category: "IT", enabled: true },
   { url: "https://www.polygon.com/rss/index.xml", name: "Polygon", category: "Gaming", enabled: true },
   { url: "https://krebsonsecurity.com/feed/", name: "Krebs on Security", category: "Cybersec", enabled: true },
@@ -140,25 +140,28 @@ export async function setFeedSourceEnabled(
 
 export async function seedDefaultFeedSourcesIfEmpty(): Promise<void> {
   const supabase = adminClient();
-  const { count, error: countError } = await supabase
+  const { data: existing, error: fetchError } = await supabase
     .from("feed_sources")
-    .select("*", { count: "exact", head: true });
+    .select("url, category");
 
-  if (countError) {
-    console.error("Error checking feed_sources count:", countError);
+  if (fetchError) {
+    console.error("Error checking feed_sources:", fetchError);
     return;
   }
 
-  if (count !== null && count > 0) return;
+  const existingUrls = new Set((existing || []).map((row) => row.url));
+  const missingFeeds = DEFAULT_FEED_SOURCES.filter((s) => !existingUrls.has(s.url));
 
-  const { error } = await supabase.from("feed_sources").insert(
-    DEFAULT_FEED_SOURCES.map((s) => ({
-      url: s.url,
-      name: s.name,
-      category: s.category,
-      enabled: s.enabled,
-    }))
-  );
-
-  if (error) console.error("Error seeding default feed sources:", error);
+  if (missingFeeds.length > 0) {
+    const { error } = await supabase.from("feed_sources").insert(
+      missingFeeds.map((s) => ({
+        url: s.url,
+        name: s.name,
+        category: s.category,
+        enabled: s.enabled,
+      }))
+    );
+    if (error) console.error("Error inserting missing default feed sources:", error);
+    else console.log(`Seeded ${missingFeeds.length} missing feed sources into Supabase.`);
+  }
 }

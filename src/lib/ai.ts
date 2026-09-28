@@ -7,7 +7,42 @@ export interface AnalyzedDraft {
   contentHtml: string;
 }
 
-export async function analyzeContent(rawText: string, sourceUrl: string): Promise<AnalyzedDraft> {
+import { CHAKRA_TOPICS } from "./constants";
+
+function cleanJsonString(str: string): any {
+  const start = str.indexOf('{');
+  const end = str.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error("No JSON object found in response");
+  let json = str.slice(start, end + 1);
+
+  try {
+    return JSON.parse(json);
+  } catch {
+    let inString = false;
+    let result = '';
+    for (let i = 0; i < json.length; i++) {
+      const c = json[i];
+      if (c === '"' && (i === 0 || json[i - 1] !== '\\')) {
+        inString = !inString;
+        result += c;
+      } else if (inString) {
+        if (c === '\n') result += '\\n';
+        else if (c === '\r') result += '\\r';
+        else if (c === '\t') result += '\\t';
+        else result += c;
+      } else {
+        result += c;
+      }
+    }
+    return JSON.parse(result);
+  }
+}
+
+export async function analyzeContent(
+  rawText: string,
+  sourceUrl: string,
+  targetGenre?: string
+): Promise<AnalyzedDraft> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === "your_actual_key_here") {
@@ -15,13 +50,17 @@ export async function analyzeContent(rawText: string, sourceUrl: string): Promis
     return {
       title: "[MOCK] AI Analyzed: The Future of Web Development",
       summary: "A mock summary generated because the Gemini API Key was missing. This demonstrates the automation flow.",
-      genre: "Development",
+      genre: (targetGenre && CHAKRA_TOPICS.includes(targetGenre)) ? targetGenre : "Tech",
       contentHtml: "<h2>Mock Content</h2><p>This is a simulated AI response used for local testing when an API key is not provided.</p>"
     };
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const targetCategoryInstruction = targetGenre && CHAKRA_TOPICS.includes(targetGenre)
+    ? `The primary intended category for this article is "${targetGenre}". Set "genre" to "${targetGenre}" unless the text clearly belongs elsewhere.`
+    : `Choose the best matching category from the allowed list.`;
 
   const prompt = `
     You are the lead editor and senior analyst for Chakramantra, an independent publication that publishes original, in-depth analysis on technology, science, and global affairs.
@@ -32,6 +71,8 @@ export async function analyzeContent(rawText: string, sourceUrl: string): Promis
 
     Crucially, make the article highly detailed, comprehensive, and readable. It should be at least 800-1200 words. 
     Expand on concepts, add deeper analytical insights, structure it with multiple <h3> subheadings, and use bullet points where helpful.
+
+    ${targetCategoryInstruction}
 
     Return ONLY a strict JSON object with this schema. No markdown fences or text outside the JSON.
 
@@ -49,8 +90,14 @@ export async function analyzeContent(rawText: string, sourceUrl: string): Promis
   try {
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
-    const cleanJson = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    return JSON.parse(cleanJson) as AnalyzedDraft;
+    const parsed = cleanJsonString(responseText) as AnalyzedDraft;
+
+    // Validate canonical genre
+    if (!CHAKRA_TOPICS.includes(parsed.genre)) {
+      parsed.genre = (targetGenre && CHAKRA_TOPICS.includes(targetGenre)) ? targetGenre : "Tech";
+    }
+
+    return parsed;
   } catch (error) {
     console.error("AI Analysis failed:", error);
     throw new Error("Failed to analyze content using AI.");
