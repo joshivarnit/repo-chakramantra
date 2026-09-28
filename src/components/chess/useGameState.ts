@@ -65,7 +65,7 @@ export function useGameState() {
   const gameRef = useRef(state.game);
 
   // Make a move
-  const makeMove = useCallback((move: { from: string; to: string; promotion?: string }): Move | null => {
+  const makeMove = useCallback((move: string | { from: string; to: string; promotion?: string }): Move | null => {
     try {
       const gameCopy = new Chess(gameRef.current.fen());
       const result = gameCopy.move(move);

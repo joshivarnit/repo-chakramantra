@@ -1,9 +1,34 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { Chessboard } from 'react-chessboard';
 import { Chess, Square } from 'chess.js';
+import {
+  Menu,
+  RotateCcw,
+  Repeat,
+  Lightbulb,
+  SkipBack,
+  ChevronLeft,
+  ChevronRight,
+  SkipForward,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Plus,
+  Minus,
+  Bot,
+  Search,
+  Swords,
+  BarChart3,
+  Edit3,
+  FolderArchive,
+  Target,
+  Settings as SettingsIcon,
+  Info,
+} from 'lucide-react';
+
 import { useStockfish } from './useStockfish';
 import { useGameState } from './useGameState';
 import { BOARD_THEMES, type BoardTheme } from './themes';
@@ -16,6 +41,7 @@ import {
   getIsolatedPawns,
   classifyMove,
   generateGameReport,
+  toFigurineNotation,
   type GameReportData,
 } from './chess-utils';
 import {
@@ -25,69 +51,77 @@ import {
   playBlunderSound,
   playGameOverSound,
 } from './sound';
-import EvalBar from './EvalBar';
-import MoveHistory from './MoveHistory';
-import TopMovesPanel from './TopMovesPanel';
-import GameControls from './GameControls';
-import SettingsPanel from './SettingsPanel';
-import NewGameDialog from './NewGameDialog';
+
+import DrawerSidebar, { type ActiveView } from './DrawerSidebar';
+import BoardEditorModal from './BoardEditorModal';
+import OpeningsModal from './OpeningsModal';
+import BoardOptionsSheet from './BoardOptionsSheet';
+import PlaySetupModal from './PlaySetupModal';
+import SettingsPanel, { type ChakraSettings } from './SettingsPanel';
+import GamesArchiveModal from './GamesArchiveModal';
+import AboutModal from './AboutModal';
 import GameReport from './GameReport';
+import ArrowNumberBadges, { type ArrowBadge } from './ArrowNumberBadges';
+import { detectOpening, type Opening } from './openings';
+import MoveHistory from './MoveHistory';
 
 import './chess-app.css';
 
-const PIECE_UNICODE: Record<string, string> = {
-  p: '♟', n: '♞', b: '♝', r: '♜', q: '♛',
-  P: '♙', N: '♘', B: '♗', R: '♖', Q: '♕',
-};
-
-function getCapturedPieces(game: Chess) {
-  const STARTING_PIECES: Record<string, number> = {
-    p: 8, n: 2, b: 2, r: 2, q: 1,
-    P: 8, N: 2, B: 2, R: 2, Q: 1,
-  };
-  const currentPieces: Record<string, number> = {};
-  game.board().forEach(row => {
-    row.forEach(piece => {
-      if (piece) {
-        const key = piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
-        currentPieces[key] = (currentPieces[key] || 0) + 1;
-      }
-    });
-  });
-
-  const capturedByWhite: string[] = [];
-  const capturedByBlack: string[] = [];
-
-  ['q', 'r', 'b', 'n', 'p'].forEach(type => {
-    const missing = (STARTING_PIECES[type] || 0) - (currentPieces[type] || 0);
-    for (let i = 0; i < missing; i++) capturedByWhite.push(type);
-  });
-
-  ['Q', 'R', 'B', 'N', 'P'].forEach(type => {
-    const missing = (STARTING_PIECES[type] || 0) - (currentPieces[type] || 0);
-    for (let i = 0; i < missing; i++) capturedByBlack.push(type);
-  });
-
-  const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
-  const whiteScore = capturedByWhite.reduce((sum, p) => sum + (pieceValues[p.toLowerCase()] || 0), 0);
-  const blackScore = capturedByBlack.reduce((sum, p) => sum + (pieceValues[p.toLowerCase()] || 0), 0);
-  const materialDiff = whiteScore - blackScore;
-
-  return { capturedByWhite, capturedByBlack, materialDiff };
-}
-
 export default function ChessApp() {
-  const [leftTab, setLeftTab] = useState<'moves' | 'topMoves'>('moves');
-  const [mobileTab, setMobileTab] = useState<'board' | 'moves' | 'topMoves' | 'controls'>('board');
+  // Navigation / Modal States
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>('analysis');
+  const [showEditor, setShowEditor] = useState(false);
+  const [showOpenings, setShowOpenings] = useState(false);
+  const [showBoardOptions, setShowBoardOptions] = useState(false);
+  const [showPlaySetup, setShowPlaySetup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [gameReport, setGameReport] = useState<GameReportData | null>(null);
+
+  // Widescreen Right Hub Tab
+  const [desktopRightTab, setDesktopRightTab] = useState<'variations' | 'history' | 'openings'>('variations');
+
+  // Board & Move Selection
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
   const [selectedCandidateUci, setSelectedCandidateUci] = useState<string | null>(null);
-  const [showNewGame, setShowNewGame] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showReport, setShowReport] = useState(false);
-  const [gameReport, setGameReport] = useState<GameReportData | null>(null);
-  const [boardTheme, setBoardTheme] = useState<BoardTheme>(BOARD_THEMES[0]);
-  const [blunderAlert, setBlunderAlert] = useState<string | null>(null);
+  const [boardTheme, setBoardTheme] = useState<BoardTheme>(
+    BOARD_THEMES.find(t => t.id === 'walnut') || BOARD_THEMES[0]
+  );
+
+  // Play Opponent Config
+  const [playElo, setPlayElo] = useState<number>(2000);
+  const [enginePaused, setEnginePaused] = useState(false);
+  const [engineLineCount, setEngineLineCount] = useState<number>(3);
+
+  // Toasts
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [speechBubble, setSpeechBubble] = useState<string | null>(null);
+  const [hintActive, setHintActive] = useState(false);
+
+  // Comprehensive Settings State
+  const [settings, setSettings] = useState<ChakraSettings>({
+    soundEnabled: true,
+    fullScreen: false,
+    showThreats: true,
+    showKeyElements: false,
+    useNnue: true,
+    engineThreads: 2,
+    engineHash: 64,
+    engineDepth: 18,
+    figurineNotation: true,
+    pieceAnimationSpeed: 'default',
+    enlargePieceOnDrag: true,
+    showAverageCpl: true,
+    drawArrows: true,
+    showAnalysisArrows: true,
+    showArrowNumbers: true,
+    showArrowStrengthColor: true,
+    username: 'ChakraPlayer',
+  });
 
   const gameState = useGameState();
   const {
@@ -97,17 +131,7 @@ export default function ChessApp() {
     currentMoveIndex,
     moveHistory,
     isGameOver,
-    gameResult,
     boardOrientation,
-    engineDepth,
-    showThreats,
-    showKeyElements,
-    showBestMoveArrow,
-    showEvalBar,
-    showMoveStrength,
-    pauseOnBlunder,
-    soundEnabled,
-    figurineNotation,
     makeMove,
     goToMove,
     goToStart,
@@ -119,15 +143,20 @@ export default function ChessApp() {
     loadFEN,
     getPGN,
     flipBoard,
-    updateSetting,
     updateMoveEval,
   } = gameState;
 
   const prevEvalRef = useRef<number>(0);
 
-  // Play appropriate move audio
+  // Show Toast Helper
+  const showToast = useCallback((msg: string, duration = 3000) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), duration);
+  }, []);
+
+  // Audio trigger
   const triggerMoveSound = useCallback((moveResult: any, updatedGame: Chess) => {
-    if (!soundEnabled) return;
+    if (!settings.soundEnabled) return;
     if (updatedGame.isGameOver()) {
       playGameOverSound();
     } else if (updatedGame.inCheck()) {
@@ -137,9 +166,9 @@ export default function ChessApp() {
     } else {
       playMoveSound();
     }
-  }, [soundEnabled]);
+  }, [settings.soundEnabled]);
 
-  // Handle engine's best move (for play mode)
+  // Handle engine best move in Play mode
   const handleEngineBestMove = useCallback((bestMoveUci: string) => {
     if (mode !== 'play') return;
     if (game.turn() === playerColor) return;
@@ -151,34 +180,38 @@ export default function ChessApp() {
         if (move) {
           triggerMoveSound(move, game);
         }
-      }, 300);
+      }, 400);
     }
   }, [mode, game, playerColor, makeMove, triggerMoveSound]);
 
   const stockfish = useStockfish({
     onBestMove: handleEngineBestMove,
+    defaultMultiPV: engineLineCount,
   });
 
-  // Send position to engine whenever game state changes
+  // Keep engine MultiPV count synced
   useEffect(() => {
+    stockfish.updateMultiPV(engineLineCount);
+  }, [engineLineCount, stockfish]);
+
+  // Position feed to engine
+  useEffect(() => {
+    if (enginePaused) return;
     const fen = game.fen();
     const isAtEnd = currentMoveIndex === moveHistory.length - 1 || moveHistory.length === 0;
 
     if (mode === 'play' && isAtEnd && !isGameOver) {
       if (game.turn() !== playerColor) {
-        // CPU's turn to play
-        stockfish.play(fen, engineDepth);
+        stockfish.play(fen, settings.engineDepth);
       } else {
-        // Player's turn — analyze in background
-        stockfish.analyze(fen, engineDepth);
+        stockfish.analyze(fen, settings.engineDepth);
       }
     } else {
-      // Analysis mode or reviewing history
-      stockfish.analyze(fen, engineDepth);
+      stockfish.analyze(fen, settings.engineDepth);
     }
-  }, [game.fen(), mode, playerColor, engineDepth, currentMoveIndex, moveHistory.length, isGameOver]);
+  }, [game.fen(), mode, playerColor, settings.engineDepth, currentMoveIndex, moveHistory.length, isGameOver, enginePaused]);
 
-  // Store eval for move classification
+  // Move eval classification
   useEffect(() => {
     if (stockfish.depth >= 10 && currentMoveIndex >= 0) {
       const evalFromWhite = stockfish.evaluation;
@@ -199,20 +232,18 @@ export default function ChessApp() {
 
         updateMoveEval(currentMoveIndex, evalFromWhite / 100, classification, cpLoss);
 
-        if (classification === 'blunder' && pauseOnBlunder && mode === 'play') {
-          if (soundEnabled) playBlunderSound();
-          setBlunderAlert(`Blunder! ${entry.move.san} loses ${(cpLoss / 100).toFixed(1)} pawns`);
-          setTimeout(() => setBlunderAlert(null), 3000);
+        if (classification === 'blunder' && mode === 'play') {
+          if (settings.soundEnabled) playBlunderSound();
+          showToast(`Blunder! ${entry.move.san} loses ${(cpLoss / 100).toFixed(1)} pawns`);
         }
       }
       prevEvalRef.current = evalFromWhite;
     }
-  }, [stockfish.depth, stockfish.evaluation, currentMoveIndex, moveHistory, pauseOnBlunder, mode, soundEnabled, updateMoveEval]);
+  }, [stockfish.depth, stockfish.evaluation, currentMoveIndex, moveHistory, mode, settings.soundEnabled, updateMoveEval, showToast]);
 
-  // Handle piece drop (drag & drop)
+  // Drag & drop move handler
   const onPieceDrop = useCallback(({ sourceSquare, targetSquare, piece }: { sourceSquare: string; targetSquare: string | null; piece: { pieceType: string } }): boolean => {
     if (!targetSquare) return false;
-
     if (mode === 'play' && game.turn() !== playerColor) return false;
     if (mode === 'play' && currentMoveIndex < moveHistory.length - 1 && moveHistory.length > 0) return false;
 
@@ -226,13 +257,14 @@ export default function ChessApp() {
       triggerMoveSound(move, game);
       setSelectedSquare(null);
       setPossibleMoves([]);
+      setHintActive(false);
       return true;
     }
 
     return false;
   }, [mode, game, playerColor, currentMoveIndex, moveHistory.length, makeMove, triggerMoveSound]);
 
-  // Handle tap-to-move for touchscreens & mobile
+  // Tap-to-move for touchscreens & smartphones
   const onSquareClick = useCallback((args: any) => {
     const square = args?.square;
     if (!square) return;
@@ -258,6 +290,7 @@ export default function ChessApp() {
         }
         setSelectedSquare(null);
         setPossibleMoves([]);
+        setHintActive(false);
         return;
       }
 
@@ -282,24 +315,76 @@ export default function ChessApp() {
     }
   }, [mode, game, playerColor, currentMoveIndex, moveHistory.length, selectedSquare, possibleMoves, makeMove, triggerMoveSound]);
 
-  // Handle new game
-  const handleNewGame = useCallback((gameMode: 'analysis' | 'play', color: 'w' | 'b', depth: number) => {
-    newGame(gameMode, color, depth);
+  // Detect current opening from move history
+  const currentOpening = useMemo(() => {
+    const sanList = moveHistory.slice(0, currentMoveIndex + 1).map(m => m.move.san);
+    return detectOpening(sanList);
+  }, [moveHistory, currentMoveIndex]);
+
+  // Handle Menu View Selection
+  const handleSelectView = (view: ActiveView) => {
+    setActiveView(view);
+    switch (view) {
+      case 'analysis':
+        newGame('analysis', 'w', settings.engineDepth);
+        showToast('Switched to Analysis Board');
+        break;
+      case 'play':
+        setShowPlaySetup(true);
+        break;
+      case 'report':
+        handleShowReport();
+        break;
+      case 'editor':
+        setShowEditor(true);
+        break;
+      case 'archive':
+        setShowArchive(true);
+        break;
+      case 'openings':
+        setShowOpenings(true);
+        break;
+      case 'settings':
+        setShowSettings(true);
+        break;
+      case 'about':
+        setShowAbout(true);
+        break;
+    }
+  };
+
+  // Start game from Play Setup modal
+  const handleStartPlayGame = (config: {
+    color: 'w' | 'b' | 'random';
+    opponentType: 'elo' | 'maia';
+    elo: number;
+    thinkTimeSec: number;
+    chess960: boolean;
+    startFen?: string;
+  }) => {
+    const chosenColor = config.color === 'random' ? (Math.random() > 0.5 ? 'w' : 'b') : config.color;
+    setPlayElo(config.elo);
+    newGame('play', chosenColor, Math.min(18, Math.max(3, Math.round(config.elo / 150))));
     stockfish.newGame();
-    prevEvalRef.current = 0;
-    setSelectedSquare(null);
-    setPossibleMoves([]);
-    setGameReport(null);
-  }, [newGame, stockfish]);
 
-  // Generate report
+    if (config.startFen) {
+      loadFEN(config.startFen);
+    }
+
+    showToast('🔥 Game Started!');
+    setSpeechBubble('👋 Best of luck!');
+    setTimeout(() => setSpeechBubble(null), 4000);
+  };
+
+  // Generate Accuracy Report
   const handleShowReport = useCallback(() => {
-    if (moveHistory.length === 0) return;
-
+    if (moveHistory.length === 0) {
+      showToast('Make some moves first to analyze accuracy.');
+      return;
+    }
     const playerMoves = moveHistory.filter((_, i) =>
       mode === 'play' ? (i % 2 === (playerColor === 'w' ? 0 : 1)) : true
     );
-
     const classifications = playerMoves
       .filter(m => m.classification)
       .map(m => m.classification as any);
@@ -310,9 +395,29 @@ export default function ChessApp() {
     const report = generateGameReport(classifications, cpLosses);
     setGameReport(report);
     setShowReport(true);
-  }, [moveHistory, mode, playerColor]);
+  }, [moveHistory, mode, playerColor, showToast]);
 
-  // Build custom square styles
+  // Load Opening on board
+  const handleSelectOpening = (op: Opening) => {
+    newGame('analysis', 'w', settings.engineDepth);
+    stockfish.newGame();
+    setTimeout(() => {
+      op.moves.forEach(san => {
+        makeMove(san);
+      });
+      showToast(`Loaded ${op.eco}: ${op.name}`);
+    }, 100);
+  };
+
+  // Trigger hint
+  const handleToggleHint = () => {
+    setHintActive(!hintActive);
+    if (!hintActive && stockfish.bestMove) {
+      showToast(`Hint: Engine recommends ${stockfish.bestMove}`);
+    }
+  };
+
+  // Build Board Square Styles
   const customSquareStyles: Record<string, React.CSSProperties> = {};
 
   // Last move highlight
@@ -336,7 +441,7 @@ export default function ChessApp() {
     };
   }
 
-  // Possible move indicators (dots & capture rings)
+  // Move dots & capture rings
   possibleMoves.forEach(sq => {
     const isTargetOccupied = !!game.get(sq as Square);
     customSquareStyles[sq] = {
@@ -349,7 +454,7 @@ export default function ChessApp() {
   });
 
   // Threat highlights
-  if (showThreats) {
+  if (settings.showThreats) {
     const currentTurn = game.turn();
     const hanging = getHangingPieces(game, currentTurn);
     const threatened = getThreatenedSquares(game, currentTurn);
@@ -373,7 +478,7 @@ export default function ChessApp() {
   }
 
   // Key elements
-  if (showKeyElements) {
+  if (settings.showKeyElements) {
     const currentTurn = game.turn();
     const pinned = getPinnedPieces(game, currentTurn);
     const passed = getPassedPawns(game, currentTurn);
@@ -385,14 +490,12 @@ export default function ChessApp() {
         background: `${customSquareStyles[sq]?.backgroundColor || 'transparent'} radial-gradient(circle, rgba(255,0,0,0.3) 0%, transparent 70%)`,
       };
     });
-
     passed.forEach(sq => {
       customSquareStyles[sq] = {
         ...customSquareStyles[sq],
         boxShadow: `${customSquareStyles[sq]?.boxShadow || ''} inset 0 0 8px rgba(0, 255, 0, 0.5)`.trim(),
       };
     });
-
     isolated.forEach(sq => {
       customSquareStyles[sq] = {
         ...customSquareStyles[sq],
@@ -401,51 +504,54 @@ export default function ChessApp() {
     });
   }
 
-  // Best move / candidate move arrows
+  // Multi-color Tactical Arrows & Number Badges (#1 Blue, #2 Green, #3 Orange, #4 Yellow)
   const customArrows: Array<{ startSquare: string; endSquare: string; color: string }> = [];
-  if (showBestMoveArrow) {
+  const arrowBadges: ArrowBadge[] = [];
+
+  const ARROW_COLORS = [
+    'rgba(59, 130, 246, 0.9)',  // #1 Blue
+    'rgba(34, 197, 94, 0.88)',  // #2 Green
+    'rgba(249, 115, 22, 0.88)', // #3 Orange
+    'rgba(234, 179, 8, 0.88)',  // #4 Yellow
+  ];
+
+  if (settings.drawArrows && settings.showAnalysisArrows) {
     if (selectedCandidateUci) {
       const parsed = parseBestMove(selectedCandidateUci);
       if (parsed) {
-        customArrows.push({
-          startSquare: parsed.from,
-          endSquare: parsed.to,
-          color: 'rgba(59, 130, 246, 0.85)',
-        });
+        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_COLORS[0] });
+        if (settings.showArrowNumbers) {
+          arrowBadges.push({ id: `badge-sel`, square: parsed.to, number: 1, color: ARROW_COLORS[0] });
+        }
+      }
+    } else if (hintActive && stockfish.bestMove) {
+      const parsed = parseBestMove(stockfish.bestMove);
+      if (parsed) {
+        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_COLORS[0] });
+        arrowBadges.push({ id: `badge-hint`, square: parsed.to, number: 1, color: ARROW_COLORS[0] });
       }
     } else if (stockfish.multiPvLines.length > 0) {
-      const colors = ['rgba(59, 130, 246, 0.85)', 'rgba(34, 197, 94, 0.75)', 'rgba(245, 158, 11, 0.65)'];
-      stockfish.multiPvLines.slice(0, Math.min(3, stockfish.multiPvLines.length)).forEach((line, idx) => {
+      const count = Math.min(engineLineCount, stockfish.multiPvLines.length);
+      stockfish.multiPvLines.slice(0, count).forEach((line, idx) => {
         const parsed = parseBestMove(line.moveUci);
         if (parsed) {
-          customArrows.push({
-            startSquare: parsed.from,
-            endSquare: parsed.to,
-            color: colors[idx] || 'rgba(148, 163, 184, 0.5)',
-          });
+          const color = settings.showArrowStrengthColor ? (ARROW_COLORS[idx] || ARROW_COLORS[3]) : ARROW_COLORS[0];
+          customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color });
+          if (settings.showArrowNumbers) {
+            arrowBadges.push({ id: `badge-${line.multipv}`, square: parsed.to, number: line.multipv, color });
+          }
         }
       });
     } else if (stockfish.bestMove) {
       const parsed = parseBestMove(stockfish.bestMove);
       if (parsed) {
-        customArrows.push({
-          startSquare: parsed.from,
-          endSquare: parsed.to,
-          color: 'rgba(59, 130, 246, 0.85)',
-        });
+        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_COLORS[0] });
+        if (settings.showArrowNumbers) {
+          arrowBadges.push({ id: `badge-1`, square: parsed.to, number: 1, color: ARROW_COLORS[0] });
+        }
       }
     }
   }
-
-  // Engine evaluation normalized from White's perspective
-  const evalFromWhite = stockfish.evaluation;
-  const { capturedByWhite, capturedByBlack, materialDiff } = getCapturedPieces(game);
-
-  // Top player vs bottom player pieces based on board orientation
-  const topCaptured = boardOrientation === 'white' ? capturedByBlack : capturedByWhite;
-  const bottomCaptured = boardOrientation === 'white' ? capturedByWhite : capturedByBlack;
-  const topAdvantage = boardOrientation === 'white' ? -materialDiff : materialDiff;
-  const bottomAdvantage = boardOrientation === 'white' ? materialDiff : -materialDiff;
 
   // Keyboard navigation
   useEffect(() => {
@@ -463,306 +569,488 @@ export default function ChessApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goBack, goForward, goToStart, goToEnd, flipBoard]);
 
+  // Convert UCI to Figurine SAN
+  const uciToSan = (uci: string, boardFen: string): string => {
+    if (!uci || uci.length < 4) return uci;
+    try {
+      const tempGame = new Chess(boardFen);
+      const res = tempGame.move({ from: uci.substring(0, 2), to: uci.substring(2, 4), promotion: uci[4] || 'q' });
+      if (res) return settings.figurineNotation ? toFigurineNotation(res.san) : res.san;
+    } catch {
+      // fallback
+    }
+    return uci;
+  };
+
+  const getLinePreview = (pv: string[], fen: string) => {
+    if (!pv || pv.length <= 1) return '';
+    try {
+      const temp = new Chess(fen);
+      const moves: string[] = [];
+      for (let i = 0; i < Math.min(pv.length, 6); i++) {
+        const res = temp.move({ from: pv[i].substring(0, 2), to: pv[i].substring(2, 4), promotion: pv[i][4] || 'q' });
+        if (!res) break;
+        if (i > 0) moves.push(settings.figurineNotation ? toFigurineNotation(res.san) : res.san);
+      }
+      return moves.join(' ');
+    } catch {
+      return pv.slice(1, 5).join(' ');
+    }
+  };
+
+  const evalFormatted = (stockfish.evaluation >= 0 ? '+' : '') + (stockfish.evaluation / 100).toFixed(2);
+  const evalPercent = Math.min(100, Math.max(0, 50 + (stockfish.evaluation / 100) * 8));
+
   return (
     <div className="chess-app">
-      {/* Top Navigation Bar */}
+      {/* ──────────────────────────────────────────────────────────────────
+          TOP APP BAR (Matches Video 00:00 & 00:03)
+          ────────────────────────────────────────────────────────────────── */}
       <header className="chess-top-bar">
-        <Link href="/" className="chess-back-link">
-          ← <span className="hidden sm:inline">Chakramantra</span>
-        </Link>
-
-        <div className="chess-top-title">
-          <span className="chess-icon">♟</span>
-          <span className="chess-title-text">ChakraChess</span>
-          <span className="chess-engine-badge">CPU Engine</span>
+        <div className="chess-top-left">
+          <button
+            className="chess-drawer-btn"
+            onClick={() => setIsDrawerOpen(true)}
+            aria-label="Open Navigation Drawer"
+            title="Menu"
+          >
+            <Menu size={22} />
+          </button>
+          <Link href="/" className="chess-brand-link">
+            <span>ChakraChess</span>
+            <span className="chess-pro-badge">PRO</span>
+          </Link>
         </div>
 
-        <div className="chess-top-actions">
-          <a
-            href="/CMchess.apk"
-            download
-            className="chess-apk-badge"
-            title="Download Android App (APK)"
+        {/* Center Opening Banner & Move Chips */}
+        <div className="chess-top-center">
+          <button
+            className="opening-banner-pill"
+            onClick={() => setShowOpenings(true)}
+            title="Explore Opening Books"
           >
-            📱 <span className="hidden sm:inline">App</span> APK
-          </a>
-          <button onClick={flipBoard} className="chess-icon-btn" title="Flip Board">
-            ↕
+            <span>{currentOpening ? `${currentOpening.eco}: ${currentOpening.name}` : 'C20: King Pawn Game'}</span>
+          </button>
+
+          <div className="move-chips-strip">
+            {moveHistory.map((m, idx) => (
+              <button
+                key={idx}
+                className={`move-chip ${idx === currentMoveIndex ? 'active-chip' : ''}`}
+                onClick={() => goToMove(idx)}
+              >
+                {Math.floor(idx / 2) + 1}. {settings.figurineNotation ? toFigurineNotation(m.move.san) : m.move.san}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Action Icons */}
+        <div className="chess-top-right">
+          <button className="chess-header-icon-btn" onClick={flipBoard} title="Flip Chessboard">
+            <Repeat size={16} />
           </button>
           <button
-            onClick={() => updateSetting('soundEnabled', !soundEnabled)}
-            className={`chess-icon-btn ${soundEnabled ? 'active-sound' : 'muted-sound'}`}
-            title={soundEnabled ? 'Mute Sound' : 'Enable Sound'}
+            className="chess-header-icon-btn"
+            onClick={() => setEnginePaused(!enginePaused)}
+            title={enginePaused ? 'Resume Engine Analysis' : 'Pause Engine Analysis'}
           >
-            {soundEnabled ? '🔊' : '🔇'}
+            {enginePaused ? <Play size={16} /> : <Pause size={16} />}
           </button>
-          <button onClick={() => setShowSettings(true)} className="chess-icon-btn" title="Settings">
-            ⚙
+          <button className="chess-header-icon-btn" onClick={() => setShowSettings(true)} title="Settings">
+            <SettingsIcon size={16} />
           </button>
         </div>
       </header>
 
-      {/* Blunder alert */}
-      {blunderAlert && (
-        <div className="blunder-alert">
-          <span className="blunder-icon">⚠</span>
-          {blunderAlert}
+      {/* Floating Bottom Toast */}
+      {toastMessage && (
+        <div className="floating-bottom-toast">
+          <span>🔥</span> {toastMessage}
         </div>
       )}
 
-      {/* Mobile view segmented tabs (visible only on mobile screens) */}
-      <div className="chess-mobile-tabs">
-        <button
-          className={`mobile-tab-btn ${mobileTab === 'board' ? 'active' : ''}`}
-          onClick={() => setMobileTab('board')}
-        >
-          ♟ Board
-        </button>
-        <button
-          className={`mobile-tab-btn ${mobileTab === 'moves' ? 'active' : ''}`}
-          onClick={() => setMobileTab('moves')}
-        >
-          📜 Moves ({moveHistory.length})
-        </button>
-        <button
-          className={`mobile-tab-btn ${mobileTab === 'topMoves' ? 'active' : ''}`}
-          onClick={() => setMobileTab('topMoves')}
-        >
-          ★ Top 15
-        </button>
-        <button
-          className={`mobile-tab-btn ${mobileTab === 'controls' ? 'active' : ''}`}
-          onClick={() => setMobileTab('controls')}
-        >
-          ⚙ Game
-        </button>
-      </div>
-
-      <div className="chess-app-layout">
-        {/* Left panel: Move History or Top 15 Best Moves */}
-        <div className={`chess-left-panel ${mobileTab === 'moves' || mobileTab === 'topMoves' ? 'mobile-visible' : ''}`}>
-          <div className="left-panel-tabs">
-            <button
-              className={`left-tab-btn ${leftTab === 'moves' ? 'left-tab-active' : ''}`}
-              onClick={() => { setLeftTab('moves'); setMobileTab('moves'); }}
-            >
-              Moves ({moveHistory.length})
-            </button>
-            <button
-              className={`left-tab-btn ${leftTab === 'topMoves' ? 'left-tab-active' : ''}`}
-              onClick={() => { setLeftTab('topMoves'); setMobileTab('topMoves'); }}
-            >
-              ★ Top 15 Moves
-              {stockfish.multiPvLines.length > 0 && (
-                <span className="left-tab-badge">{stockfish.multiPvLines.length}</span>
-              )}
-            </button>
-          </div>
-
-          <div className="left-panel-content">
-            {leftTab === 'moves' ? (
-              <MoveHistory
-                moves={moveHistory}
-                currentIndex={currentMoveIndex}
-                figurineNotation={figurineNotation}
-                showStrength={showMoveStrength}
-                onGoToMove={goToMove}
-              />
-            ) : (
-              <TopMovesPanel
-                lines={stockfish.multiPvLines}
-                fen={game.fen()}
-                multipvCount={stockfish.multipvCount}
-                selectedUci={selectedCandidateUci}
-                figurineNotation={figurineNotation}
-                onSelectMove={(uci) => setSelectedCandidateUci(uci === selectedCandidateUci ? null : uci)}
-                onMultiPVChange={stockfish.updateMultiPV}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Center: Board */}
-        <div className={`chess-center ${mobileTab === 'board' ? 'mobile-visible' : ''}`}>
-          {/* Top opponent captured pieces bar */}
-          <div className="captured-pieces-bar">
-            <div className="captured-pieces-list">
-              {topCaptured.map((p, i) => (
-                <span key={i} className="captured-piece-glyph">
-                  {PIECE_UNICODE[p] || p}
-                </span>
-              ))}
-              {topAdvantage > 0 && (
-                <span className="material-advantage-pill">+{topAdvantage}</span>
-              )}
-            </div>
-            <div className="opponent-label">
-              {mode === 'play'
-                ? (boardOrientation === (playerColor === 'w' ? 'white' : 'black') ? 'CPU' : 'You')
-                : (boardOrientation === 'white' ? 'Black' : 'White')}
+      {/* ──────────────────────────────────────────────────────────────────
+          DESKTOP / WIDESCREEN & MOBILE VIEW CONTAINER
+          ────────────────────────────────────────────────────────────────── */}
+      <div className="chess-app-desktop-container">
+        {/* Left Desktop Persistent Sidebar */}
+        <aside className="desktop-persistent-sidebar">
+          <div className="drawer-header">
+            <div className="drawer-profile">
+              <div className="drawer-avatar-ring">
+                <span className="drawer-avatar-icon">♟</span>
+              </div>
+              <div className="drawer-title-group">
+                <h2 className="drawer-title">ChakraChess Pro</h2>
+                <span className="drawer-subtitle">Grandmaster Edition</span>
+              </div>
             </div>
           </div>
+          <nav className="desktop-sidebar-nav">
+            {[
+              { id: 'analysis' as const, label: 'Analysis Board', icon: <Search size={18} /> },
+              { id: 'play' as const, label: 'Play Chess', icon: <Swords size={18} /> },
+              { id: 'report' as const, label: 'Analyze Game', icon: <BarChart3 size={18} /> },
+              { id: 'editor' as const, label: 'Board Editor', icon: <Edit3 size={18} /> },
+              { id: 'archive' as const, label: 'Games Archive', icon: <FolderArchive size={18} /> },
+              { id: 'openings' as const, label: 'Openings', icon: <Target size={18} /> },
+              { id: 'settings' as const, label: 'Settings', icon: <SettingsIcon size={18} /> },
+              { id: 'about' as const, label: 'About', icon: <Info size={18} /> },
+            ].map(item => (
+              <button
+                key={item.id}
+                className={`drawer-item ${activeView === item.id ? 'active' : ''}`}
+                onClick={() => handleSelectView(item.id)}
+              >
+                <span className="drawer-item-icon">{item.icon}</span>
+                <span className="drawer-item-label">{item.label}</span>
+                {activeView === item.id && <span className="drawer-item-indicator" />}
+              </button>
+            ))}
+          </nav>
+        </aside>
 
-          <div className="chess-board-area">
-            {/* Eval bar */}
-            {showEvalBar && (
-              <EvalBar
-                evaluation={evalFromWhite}
-                isMate={stockfish.isMate}
-                mateIn={stockfish.mateIn}
-                orientation={boardOrientation}
-              />
+        {/* Center Chessboard Stage (Mobile & Desktop) */}
+        <main className="chess-main-viewport desktop-center-stage">
+          <div className="board-stage-container">
+            {/* Play Mode Opponent Profile Bar */}
+            {mode === 'play' && (
+              <div className="play-mode-opponent-bar">
+                <div className="opponent-profile-tag">
+                  <div className="opponent-cpu-icon">
+                    <Bot size={16} />
+                  </div>
+                  <span className="opponent-elo-pill">CPU {playElo}</span>
+                </div>
+                {speechBubble && (
+                  <div className="greeting-speech-bubble">
+                    {speechBubble}
+                  </div>
+                )}
+              </div>
             )}
 
-            {/* Chess Board */}
+            {/* Chess Board Area */}
             <div className="chess-board-wrapper">
               <Chessboard
                 options={{
-                  id: "chess-app-board",
+                  id: "chakrachess-pro-board",
                   position: game.fen(),
                   onPieceDrop,
                   onSquareClick,
                   boardOrientation: boardOrientation,
                   boardStyle: {
                     borderRadius: '8px',
-                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
                   },
                   darkSquareStyle: { backgroundColor: boardTheme.darkSquare },
                   lightSquareStyle: { backgroundColor: boardTheme.lightSquare },
                   squareStyles: customSquareStyles,
                   arrows: customArrows,
-                  animationDurationInMs: 200,
+                  animationDurationInMs: settings.pieceAnimationSpeed === 'fast' ? 120 : settings.pieceAnimationSpeed === 'slow' ? 320 : 200,
                 }}
               />
+
+              {/* Numbered Arrow Badges Overlay */}
+              <ArrowNumberBadges badges={arrowBadges} boardOrientation={boardOrientation} />
             </div>
-          </div>
 
-          {/* Bottom player captured pieces bar */}
-          <div className="captured-pieces-bar bottom-captured-bar">
-            <div className="captured-pieces-list">
-              {bottomCaptured.map((p, i) => (
-                <span key={i} className="captured-piece-glyph">
-                  {PIECE_UNICODE[p] || p}
-                </span>
-              ))}
-              {bottomAdvantage > 0 && (
-                <span className="material-advantage-pill">+{bottomAdvantage}</span>
-              )}
+            {/* Active player indicator in Play Mode */}
+            {mode === 'play' && (
+              <div className="play-mode-opponent-bar" style={{ marginTop: 4 }}>
+                <div className="active-player-tag">
+                  <span className="active-dot" />
+                  <span>You</span>
+                </div>
+              </div>
+            )}
+
+            {/* Integrated Horizontal Eval Bar (Matches Video 00:00, 00:18, 00:43) */}
+            <div className="integrated-horizontal-eval-bar">
+              <div className="eval-progress-track" style={{ width: `${evalPercent}%` }} />
+              <div className="eval-bar-content">
+                <div className="eval-text-pill">
+                  {enginePaused ? (
+                    <span>⏸ Engine Paused</span>
+                  ) : (
+                    <>
+                      <span>{currentOpening ? currentOpening.name : 'Stockfish 16'}</span>
+                      <span className="eval-score-bold">({evalFormatted})</span>
+                    </>
+                  )}
+                </div>
+
+                <div className="eval-bar-controls">
+                  <button
+                    className="eval-control-btn"
+                    onClick={() => setEngineLineCount(Math.max(1, engineLineCount - 1))}
+                    title="Fewer Lines"
+                  >
+                    <Minus size={13} />
+                  </button>
+                  <button
+                    className="eval-control-btn"
+                    onClick={() => setEngineLineCount(Math.min(10, engineLineCount + 1))}
+                    title="More Lines"
+                  >
+                    <Plus size={13} />
+                  </button>
+                  <button
+                    className="eval-control-btn"
+                    onClick={() => setEnginePaused(!enginePaused)}
+                    title={enginePaused ? 'Resume' : 'Pause'}
+                  >
+                    {enginePaused ? <Play size={13} /> : <Pause size={13} />}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="opponent-label">
-              {mode === 'play'
-                ? (boardOrientation === (playerColor === 'w' ? 'white' : 'black') ? 'You' : 'CPU')
-                : (boardOrientation === 'white' ? 'White' : 'Black')}
+
+            {/* Multi-PV Engine Lines (Shown directly under board on mobile) */}
+            <div className="engine-variations-container">
+              <div className="variations-header-pill">
+                <span>Engines lines (Variations): {engineLineCount}</span>
+                <div className="variations-counter-group">
+                  <button className="var-count-btn" onClick={() => setEngineLineCount(Math.max(1, engineLineCount - 1))}>-</button>
+                  <button className="var-count-btn" onClick={() => setEngineLineCount(Math.min(10, engineLineCount + 1))}>+</button>
+                </div>
+              </div>
+
+              {stockfish.multiPvLines.slice(0, engineLineCount).map((line, idx) => {
+                const moveSan = uciToSan(line.moveUci, game.fen());
+                const preview = getLinePreview(line.pvLine, game.fen());
+                const isSelected = selectedCandidateUci === line.moveUci;
+                const scoreText = line.isMate ? (line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`) : ((line.score >= 0 ? '+' : '') + (line.score / 100).toFixed(2));
+                return (
+                  <div
+                    key={idx}
+                    className={`variation-line-card ${isSelected ? 'active-line' : ''}`}
+                    onClick={() => setSelectedCandidateUci(isSelected ? null : line.moveUci)}
+                  >
+                    <span className={`line-eval-badge ${line.score > 0 ? 'positive' : line.score < 0 ? 'negative' : ''}`}>
+                      {scoreText} (depth: {line.depth})
+                    </span>
+                    <span className="line-moves-sequence">
+                      <strong>#{line.multipv} {moveSan}</strong> {preview}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          </div>
 
-          {/* Engine info bar */}
-          <div className="chess-engine-bar">
-            <div className="engine-bar-left">
-              <span className="engine-label">CPU</span>
-              <span className="engine-depth">depth {stockfish.depth}</span>
-              {stockfish.isSearching && <span className="engine-searching">●</span>}
-            </div>
-            <div className="engine-bar-right">
-              <span className={`engine-eval ${evalFromWhite > 0 ? 'eval-positive' : evalFromWhite < 0 ? 'eval-negative' : ''}`}>
-                {stockfish.isMate
-                  ? (stockfish.mateIn > 0 ? `M${stockfish.mateIn}` : `-M${Math.abs(stockfish.mateIn)}`)
-                  : (evalFromWhite >= 0 ? '+' : '') + (evalFromWhite / 100).toFixed(2)
-                }
-              </span>
-              {stockfish.bestMove && (
-                <span className="engine-best-move">
-                  Best: <strong>{stockfish.bestMove}</strong>
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Compact Quick Action Bar on mobile */}
-          <div className="mobile-action-toolbar">
-            <button className="ctrl-btn" onClick={goToStart} title="Start">⏮</button>
-            <button className="ctrl-btn" onClick={goBack} title="Back">◀</button>
-            <button className="ctrl-btn" onClick={goForward} title="Forward">▶</button>
-            <button className="ctrl-btn" onClick={goToEnd} title="End">⏭</button>
-            <button className="ctrl-action-btn primary-btn" onClick={() => setShowNewGame(true)}>
-              + New
-            </button>
-            <button className="ctrl-action-btn" onClick={flipBoard}>
-              ↕ Flip
-            </button>
-          </div>
-        </div>
-
-        {/* Right panel: Controls */}
-        <div className={`chess-right-panel ${mobileTab === 'controls' ? 'mobile-visible' : ''}`}>
-          <div className="chess-mode-badge">
-            {mode === 'play' ? '♟ Playing vs CPU' : '🔍 Analysis Board'}
-          </div>
-
-          <GameControls
-            onNewGame={() => setShowNewGame(true)}
-            onFlipBoard={flipBoard}
-            onGoToStart={goToStart}
-            onGoBack={goBack}
-            onGoForward={goForward}
-            onGoToEnd={goToEnd}
-            onImportPGN={loadPGN}
-            onImportFEN={loadFEN}
-            onExportPGN={getPGN}
-            currentFEN={game.fen()}
-            isGameOver={isGameOver}
-            gameResult={gameResult}
-            mode={mode}
-          />
-
-          {/* Quick actions */}
-          <div className="chess-quick-actions">
-            <button
-              className="chess-quick-btn"
-              onClick={() => setShowSettings(true)}
-              title="Settings"
-            >
-              ⚙ Settings
-            </button>
-            {moveHistory.length > 0 && (
-              <button
-                className="chess-quick-btn chess-report-btn"
-                onClick={handleShowReport}
-                title="Game Report"
-              >
-                📊 Accuracy Report
+            {/* Fixed Bottom Dock Toolbar (Video 00:00, 00:03, 00:43) */}
+            <div className="chess-bottom-dock">
+              <button className="dock-btn" onClick={() => newGame('analysis', 'w', settings.engineDepth)} title="Reset Board">
+                <RotateCcw size={20} />
               </button>
+              <button className="dock-btn" onClick={flipBoard} title="Flip Board">
+                <Repeat size={20} />
+              </button>
+              <button
+                className={`dock-btn ${hintActive ? 'active-hint' : ''}`}
+                onClick={handleToggleHint}
+                title="Engine Move Hint"
+              >
+                <Lightbulb size={20} />
+              </button>
+              <button className="dock-btn" onClick={goToStart} title="First Move">
+                <SkipBack size={20} />
+              </button>
+              <button className="dock-btn" onClick={goBack} title="Previous Move">
+                <ChevronLeft size={22} />
+              </button>
+              <button className="dock-btn" onClick={goForward} title="Next Move">
+                <ChevronRight size={22} />
+              </button>
+              <button className="dock-btn" onClick={goToEnd} title="Latest Move">
+                <SkipForward size={20} />
+              </button>
+              <button className="dock-btn" onClick={() => setShowBoardOptions(true)} title="More Board Options">
+                <MoreHorizontal size={22} />
+              </button>
+            </div>
+          </div>
+        </main>
+
+        {/* Right Desktop Widescreen Hub (Taking full advantage of side space!) */}
+        <aside className="desktop-right-widescreen-hub">
+          <div className="widescreen-tabs-header">
+            <button
+              className={`widescreen-tab-btn ${desktopRightTab === 'variations' ? 'active' : ''}`}
+              onClick={() => setDesktopRightTab('variations')}
+            >
+              ★ Engine Lines
+            </button>
+            <button
+              className={`widescreen-tab-btn ${desktopRightTab === 'history' ? 'active' : ''}`}
+              onClick={() => setDesktopRightTab('history')}
+            >
+              📜 Move Tree ({moveHistory.length})
+            </button>
+            <button
+              className={`widescreen-tab-btn ${desktopRightTab === 'openings' ? 'active' : ''}`}
+              onClick={() => setDesktopRightTab('openings')}
+            >
+              🎯 Openings
+            </button>
+          </div>
+
+          <div className="widescreen-tab-content">
+            {desktopRightTab === 'variations' && (
+              <div className="desktop-variations-view">
+                <div className="variations-header-pill" style={{ marginBottom: 10 }}>
+                  <span>Stockfish 16 NNUE Variations ({stockfish.depth} depth)</span>
+                  <span className="openings-stats-badge">{stockfish.nps ? `${Math.round(stockfish.nps / 1000)}k nps` : 'Calculating'}</span>
+                </div>
+                {stockfish.multiPvLines.map((line, idx) => {
+                  const moveSan = uciToSan(line.moveUci, game.fen());
+                  const preview = getLinePreview(line.pvLine, game.fen());
+                  const isSelected = selectedCandidateUci === line.moveUci;
+                  const scoreText = line.isMate ? (line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`) : ((line.score >= 0 ? '+' : '') + (line.score / 100).toFixed(2));
+                  return (
+                    <div
+                      key={idx}
+                      className={`variation-line-card ${isSelected ? 'active-line' : ''}`}
+                      onClick={() => setSelectedCandidateUci(isSelected ? null : line.moveUci)}
+                      style={{ marginBottom: 8 }}
+                    >
+                      <span className={`line-eval-badge ${line.score > 0 ? 'positive' : line.score < 0 ? 'negative' : ''}`}>
+                        {scoreText}
+                      </span>
+                      <span className="line-moves-sequence">
+                        <strong>#{line.multipv} {moveSan}</strong> {preview}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {desktopRightTab === 'history' && (
+              <MoveHistory
+                moves={moveHistory}
+                currentIndex={currentMoveIndex}
+                figurineNotation={settings.figurineNotation}
+                showStrength={true}
+                onGoToMove={goToMove}
+              />
+            )}
+
+            {desktopRightTab === 'openings' && (
+              <div className="desktop-openings-inline">
+                {currentOpening && (
+                  <div className="opening-item" style={{ background: 'rgba(59, 130, 246, 0.1)', marginBottom: 12 }}>
+                    <div className="opening-item-left">
+                      <span className="opening-pawn-icon">♟</span>
+                      <div className="opening-info">
+                        <div className="opening-name-row">
+                          <span className="opening-eco">{currentOpening.eco}:</span>
+                          <span className="opening-name">{currentOpening.name}</span>
+                        </div>
+                        <div className="opening-moves-row">
+                          <span className="opening-moves">{currentOpening.movesStr}</span>
+                          <span className="opening-stats-badge">
+                            [W: {currentOpening.whiteWinPct}%, B: {currentOpening.blackWinPct}%]
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <button
+                  className="play-start-btn"
+                  onClick={() => setShowOpenings(true)}
+                  style={{ width: '100%' }}
+                >
+                  Browse Full Opening Directory
+                </button>
+              </div>
             )}
           </div>
-        </div>
+        </aside>
       </div>
 
-      {/* Dialogs */}
-      <NewGameDialog
-        isOpen={showNewGame}
-        onClose={() => setShowNewGame(false)}
-        onStart={handleNewGame}
+      {/* ──────────────────────────────────────────────────────────────────
+          ALL INTERACTIVE MODALS & DRAWERS
+          ────────────────────────────────────────────────────────────────── */}
+      <DrawerSidebar
+        isOpen={isDrawerOpen}
+        activeView={activeView}
+        onSelectView={handleSelectView}
+        onClose={() => setIsDrawerOpen(false)}
+      />
+
+      <BoardEditorModal
+        isOpen={showEditor}
+        initialFen={game.fen()}
+        onClose={() => setShowEditor(false)}
+        onApplyFen={(fen) => {
+          loadFEN(fen);
+          showToast('Custom position applied!');
+        }}
+      />
+
+      <OpeningsModal
+        isOpen={showOpenings}
+        onClose={() => setShowOpenings(false)}
+        onSelectOpening={handleSelectOpening}
+      />
+
+      <BoardOptionsSheet
+        isOpen={showBoardOptions}
+        onClose={() => setShowBoardOptions(false)}
+        onResetBoard={() => newGame('analysis', 'w', settings.engineDepth)}
+        onSharePgn={() => {
+          if (navigator.clipboard) navigator.clipboard.writeText(getPGN());
+        }}
+        onShareFen={() => {
+          if (navigator.clipboard) navigator.clipboard.writeText(game.fen());
+        }}
+        onSavePgn={() => {
+          const blob = new Blob([getPGN()], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `chakrachess_${Date.now()}.pgn`;
+          a.click();
+        }}
+        onAnalyzePgn={handleShowReport}
+        onPlayFromHere={() => {
+          setShowPlaySetup(true);
+        }}
+      />
+
+      <PlaySetupModal
+        isOpen={showPlaySetup}
+        onClose={() => setShowPlaySetup(false)}
+        onStartGame={handleStartPlayGame}
       />
 
       <SettingsPanel
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         currentThemeId={boardTheme.id}
-        showThreats={showThreats}
-        showKeyElements={showKeyElements}
-        showBestMoveArrow={showBestMoveArrow}
-        showEvalBar={showEvalBar}
-        showMoveStrength={showMoveStrength}
-        pauseOnBlunder={pauseOnBlunder}
-        soundEnabled={soundEnabled}
-        figurineNotation={figurineNotation}
-        engineDepth={engineDepth}
-        onThemeChange={(id) => {
-          const theme = BOARD_THEMES.find(t => t.id === id);
-          if (theme) setBoardTheme(theme);
+        settings={settings}
+        onUpdateSetting={(key, val) => setSettings(prev => ({ ...prev, [key]: val }))}
+        onThemeChange={(themeId) => {
+          const t = BOARD_THEMES.find(th => th.id === themeId);
+          if (t) setBoardTheme(t);
         }}
-        onToggle={(key, value) => updateSetting(key as any, value)}
-        onDepthChange={(d) => updateSetting('engineDepth', d)}
+      />
+
+      <GamesArchiveModal
+        isOpen={showArchive}
+        onClose={() => setShowArchive(false)}
+        onLoadGame={(pgn) => {
+          loadPGN(pgn);
+          showToast('Game loaded from archive!');
+        }}
+        currentPgn={getPGN()}
+      />
+
+      <AboutModal
+        isOpen={showAbout}
+        onClose={() => setShowAbout(false)}
       />
 
       <GameReport

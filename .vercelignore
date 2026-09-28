@@ -1,0 +1,9 @@
+# Vercel Ignore File
+base_decoded/
+*.jar
+*.apk
+!public/*.apk
+get_genres.ts
+migrate_categories.ts
+replace_text.py
+*.log
