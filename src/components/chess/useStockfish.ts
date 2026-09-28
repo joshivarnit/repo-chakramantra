@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface MultiPVLine {
-  multipv: number;          // 1-15 (1st best, 2nd best, etc.)
+  multipv: number;          // 1-20 (1st best, 2nd best, etc.)
   depth: number;
   score: number;            // centipawns (from engine's active side or White)
   scoreFromWhite: number;   // normalized from White's perspective
@@ -14,6 +14,7 @@ export interface MultiPVLine {
 }
 
 export interface StockfishState {
+  analyzedFen: string;      // The exact position FEN these lines belong to
   evaluation: number;       // centipawns from White's perspective
   depth: number;
   bestMove: string;         // UCI format e.g. "e2e4"
@@ -24,7 +25,7 @@ export interface StockfishState {
   isReady: boolean;
   isSearching: boolean;
   pvLine: string[];         // Principal variation
-  multiPvLines: MultiPVLine[]; // Up to 15 best candidate moves
+  multiPvLines: MultiPVLine[]; // Up to 20 best candidate moves
   nodes: number;
   nps: number;
 }
@@ -37,6 +38,7 @@ interface UseStockfishOptions {
 export function useStockfish(options: UseStockfishOptions = {}) {
   const [multipvCount, setMultipvCount] = useState<number>(options.defaultMultiPV || 3);
   const [state, setState] = useState<StockfishState>({
+    analyzedFen: '',
     evaluation: 0,
     depth: 0,
     bestMove: '',
@@ -55,6 +57,8 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const workerRef = useRef<Worker | null>(null);
   const isReadyRef = useRef(false);
   const activeTurnRef = useRef<'w' | 'b'>('w');
+  const currentAnalyzingFenRef = useRef<string>('');
+  const lastDepthRef = useRef<number>(20);
   const multiPvMapRef = useRef<Map<number, MultiPVLine>>(new Map());
   const onBestMoveRef = useRef(options.onBestMove);
   onBestMoveRef.current = options.onBestMove;
@@ -83,7 +87,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       throttleTimerRef.current = setTimeout(() => {
         throttleTimerRef.current = null;
         flushUpdate();
-      }, 100); // 10fps UI throttle is ideal for engine info
+      }, 90);
     }
   }, [flushUpdate]);
 
@@ -158,6 +162,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
           .sort((a, b) => a.multipv - b.multipv);
 
         const updateData: Partial<StockfishState> = {
+          analyzedFen: currentAnalyzingFenRef.current,
           multiPvLines: sortedLines,
         };
 
@@ -169,6 +174,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
           updateData.evaluation = activeTurnRef.current === 'w' ? lineScore : -lineScore;
           updateData.isMate = isMate;
           updateData.mateIn = activeTurnRef.current === 'w' ? mateIn : -mateIn;
+          updateData.bestMove = moveUci;
           if (pvMoves.length > 0) updateData.pvLine = pvMoves;
         }
 
@@ -192,7 +198,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
 
           setState(prev => ({
             ...prev,
-            bestMove,
+            bestMove: bestMove !== '(none)' ? bestMove : prev.bestMove,
             ponderMove: ponder,
             isSearching: false,
           }));
@@ -211,18 +217,47 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     };
   }, [scheduleUpdate]);
 
-  // Update MultiPV option
-  const updateMultiPV = useCallback((count: number) => {
-    const clamped = Math.max(1, Math.min(15, count));
-    setMultipvCount(clamped);
-    if (workerRef.current && isReadyRef.current) {
-      workerRef.current.postMessage(`setoption name MultiPV value ${clamped}`);
-    }
-  }, []);
-
   // Send command
   const sendCommand = useCallback((cmd: string) => {
     workerRef.current?.postMessage(cmd);
+  }, []);
+
+  // Update MultiPV option and instantly re-run analysis if active
+  const updateMultiPV = useCallback((count: number, currentFen?: string, currentDepth?: number) => {
+    const clamped = Math.max(1, Math.min(20, count));
+    setMultipvCount(clamped);
+
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    pendingUpdateRef.current = null;
+    multiPvMapRef.current.clear();
+
+    if (workerRef.current && isReadyRef.current) {
+      workerRef.current.postMessage('stop');
+      workerRef.current.postMessage(`setoption name MultiPV value ${clamped}`);
+      workerRef.current.postMessage('isready');
+
+      const fen = currentFen || currentAnalyzingFenRef.current;
+      const depth = currentDepth || lastDepthRef.current || 20;
+
+      if (fen) {
+        currentAnalyzingFenRef.current = fen;
+        const sideToMove = (fen.split(' ')[1] as 'w' | 'b') || 'w';
+        activeTurnRef.current = sideToMove;
+        workerRef.current.postMessage(`position fen ${fen}`);
+        workerRef.current.postMessage(`go depth ${depth}`);
+        setState(prev => ({
+          ...prev,
+          analyzedFen: '',
+          isSearching: true,
+          bestMove: '',
+          pvLine: [],
+          multiPvLines: [],
+        }));
+      }
+    }
   }, []);
 
   // Start analysis of a position
@@ -230,12 +265,29 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     if (!workerRef.current) return;
     const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
     activeTurnRef.current = sideToMove;
+    currentAnalyzingFenRef.current = fen;
+    lastDepthRef.current = depth;
+
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    pendingUpdateRef.current = null;
     multiPvMapRef.current.clear();
+
     sendCommand('stop');
     sendCommand(`setoption name MultiPV value ${multipvCount}`);
     sendCommand(`position fen ${fen}`);
     sendCommand(`go depth ${depth}`);
-    setState(prev => ({ ...prev, isSearching: true, multiPvLines: [] }));
+
+    setState(prev => ({
+      ...prev,
+      analyzedFen: '', // Cleared so old position arrows disappear immediately!
+      isSearching: true,
+      bestMove: '',
+      pvLine: [],
+      multiPvLines: [],
+    }));
   }, [sendCommand, multipvCount]);
 
   // Start analysis for playing
@@ -243,12 +295,29 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     if (!workerRef.current) return;
     const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
     activeTurnRef.current = sideToMove;
+    currentAnalyzingFenRef.current = fen;
+    lastDepthRef.current = depth;
+
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    pendingUpdateRef.current = null;
     multiPvMapRef.current.clear();
+
     sendCommand('stop');
     sendCommand(`setoption name MultiPV value 1`);
     sendCommand(`position fen ${fen}`);
     sendCommand(`go depth ${depth}`);
-    setState(prev => ({ ...prev, isSearching: true, multiPvLines: [] }));
+
+    setState(prev => ({
+      ...prev,
+      analyzedFen: '',
+      isSearching: true,
+      bestMove: '',
+      pvLine: [],
+      multiPvLines: [],
+    }));
   }, [sendCommand]);
 
   // Stop current search
@@ -258,12 +327,14 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       clearTimeout(throttleTimerRef.current);
       throttleTimerRef.current = null;
     }
+    pendingUpdateRef.current = null;
     setState(prev => ({ ...prev, isSearching: false }));
   }, [sendCommand]);
 
   // Reset engine
   const newGame = useCallback(() => {
     multiPvMapRef.current.clear();
+    currentAnalyzingFenRef.current = '';
     sendCommand('stop');
     sendCommand('ucinewgame');
     sendCommand(`setoption name MultiPV value ${multipvCount}`);
@@ -272,15 +343,15 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       clearTimeout(throttleTimerRef.current);
       throttleTimerRef.current = null;
     }
+    pendingUpdateRef.current = null;
     setState(prev => ({
       ...prev,
+      analyzedFen: '',
       evaluation: 0,
       depth: 0,
       bestMove: '',
       bestMoveSan: '',
       ponderMove: '',
-      isMate: false,
-      mateIn: 0,
       isSearching: false,
       pvLine: [],
       multiPvLines: [],

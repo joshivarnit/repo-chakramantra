@@ -67,6 +67,30 @@ import MoveHistory from './MoveHistory';
 
 import './chess-app.css';
 
+// 20-color progression for multi-line analysis arrows matching Chessis Pro video
+const ARROW_PALETTE = [
+  'rgba(59, 130, 246, 0.95)', // #1 Royal Blue
+  'rgba(34, 197, 94, 0.90)',  // #2 Emerald Green
+  'rgba(34, 197, 94, 0.85)',  // #3 Green
+  'rgba(249, 115, 22, 0.90)', // #4 Orange
+  'rgba(234, 179, 8, 0.90)',  // #5 Yellow
+  'rgba(249, 115, 22, 0.85)', // #6 Amber
+  'rgba(168, 85, 247, 0.90)', // #7 Purple
+  'rgba(236, 72, 153, 0.90)', // #8 Pink
+  'rgba(20, 184, 166, 0.90)', // #9 Teal
+  'rgba(59, 130, 246, 0.80)', // #10 Sky
+  'rgba(34, 197, 94, 0.80)',  // #11 Lime
+  'rgba(249, 115, 22, 0.80)', // #12 Coral
+  'rgba(234, 179, 8, 0.80)',  // #13 Gold
+  'rgba(168, 85, 247, 0.80)', // #14 Violet
+  'rgba(236, 72, 153, 0.80)', // #15 Rose
+  'rgba(20, 184, 166, 0.80)', // #16 Cyan
+  'rgba(59, 130, 246, 0.75)', // #17 Indigo
+  'rgba(34, 197, 94, 0.75)',  // #18 Forest
+  'rgba(249, 115, 22, 0.75)', // #19 Rust
+  'rgba(234, 179, 8, 0.75)',  // #20 Ochre
+];
+
 export default function ChessApp() {
   // Navigation / Modal States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -194,10 +218,13 @@ export default function ChessApp() {
     defaultMultiPV: engineLineCount,
   });
 
-  // Keep engine MultiPV count synced
-  useEffect(() => {
-    stockfish.updateMultiPV(engineLineCount);
-  }, [engineLineCount, stockfish]);
+  // Change variations count instantly and cleanly re-query engine
+  const handleSetLineCount = useCallback((newCount: number) => {
+    const clamped = Math.max(1, Math.min(20, newCount));
+    setEngineLineCount(clamped);
+    stockfish.updateMultiPV(clamped, game.fen(), settings.engineDepth);
+    showToast(`Engines lines (Variations): ${clamped}`);
+  }, [stockfish, game, settings.engineDepth, showToast]);
 
   // Toggle engine pause explicitly and reliably
   const toggleEnginePause = useCallback(() => {
@@ -276,6 +303,7 @@ export default function ChessApp() {
       triggerMoveSound(move, game);
       setSelectedSquare(null);
       setPossibleMoves([]);
+      setSelectedCandidateUci(null);
       setHintActive(false);
       return true;
     }
@@ -309,6 +337,7 @@ export default function ChessApp() {
         }
         setSelectedSquare(null);
         setPossibleMoves([]);
+        setSelectedCandidateUci(null);
         setHintActive(false);
         return;
       }
@@ -420,6 +449,7 @@ export default function ChessApp() {
   const handleSelectOpening = (op: Opening) => {
     newGame('analysis', 'w', settings.engineDepth);
     stockfish.newGame();
+    setSelectedCandidateUci(null);
     setTimeout(() => {
       op.moves.forEach(san => {
         makeMove(san);
@@ -523,38 +553,33 @@ export default function ChessApp() {
     });
   }
 
-  // Multi-color Tactical Arrows & Number Badges (#1 Blue, #2 Green, #3 Orange, #4 Yellow)
+  // Multi-color Tactical Arrows & Number Badges (#1 Blue, #2 Green, #3 Orange, #4 Yellow, etc.)
+  // CRITICAL FIX: Only draw arrows if results correspond to CURRENT board position and user is not selecting a piece!
+  const isPositionCurrent = stockfish.analyzedFen === game.fen();
   const customArrows: Array<{ startSquare: string; endSquare: string; color: string }> = [];
   const arrowBadges: ArrowBadge[] = [];
 
-  const ARROW_COLORS = [
-    'rgba(59, 130, 246, 0.9)',  // #1 Blue
-    'rgba(34, 197, 94, 0.88)',  // #2 Green
-    'rgba(249, 115, 22, 0.88)', // #3 Orange
-    'rgba(234, 179, 8, 0.88)',  // #4 Yellow
-  ];
-
-  if (settings.drawArrows && settings.showAnalysisArrows) {
+  if (settings.drawArrows && settings.showAnalysisArrows && !enginePaused && !selectedSquare && isPositionCurrent) {
     if (selectedCandidateUci) {
       const parsed = parseBestMove(selectedCandidateUci);
       if (parsed) {
-        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_COLORS[0] });
+        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_PALETTE[0] });
         if (settings.showArrowNumbers) {
-          arrowBadges.push({ id: `badge-sel`, square: parsed.to, number: 1, color: ARROW_COLORS[0] });
+          arrowBadges.push({ id: `badge-sel`, square: parsed.to, number: 1, color: ARROW_PALETTE[0] });
         }
       }
     } else if (hintActive && stockfish.bestMove) {
       const parsed = parseBestMove(stockfish.bestMove);
       if (parsed) {
-        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_COLORS[0] });
-        arrowBadges.push({ id: `badge-hint`, square: parsed.to, number: 1, color: ARROW_COLORS[0] });
+        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_PALETTE[0] });
+        arrowBadges.push({ id: `badge-hint`, square: parsed.to, number: 1, color: ARROW_PALETTE[0] });
       }
     } else if (stockfish.multiPvLines.length > 0) {
       const count = Math.min(engineLineCount, stockfish.multiPvLines.length);
       stockfish.multiPvLines.slice(0, count).forEach((line, idx) => {
         const parsed = parseBestMove(line.moveUci);
         if (parsed) {
-          const color = settings.showArrowStrengthColor ? (ARROW_COLORS[idx] || ARROW_COLORS[3]) : ARROW_COLORS[0];
+          const color = settings.showArrowStrengthColor ? (ARROW_PALETTE[idx] || ARROW_PALETTE[ARROW_PALETTE.length - 1]) : ARROW_PALETTE[0];
           customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color });
           if (settings.showArrowNumbers) {
             arrowBadges.push({ id: `badge-${line.multipv}`, square: parsed.to, number: line.multipv, color });
@@ -564,9 +589,9 @@ export default function ChessApp() {
     } else if (stockfish.bestMove) {
       const parsed = parseBestMove(stockfish.bestMove);
       if (parsed) {
-        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_COLORS[0] });
+        customArrows.push({ startSquare: parsed.from, endSquare: parsed.to, color: ARROW_PALETTE[0] });
         if (settings.showArrowNumbers) {
-          arrowBadges.push({ id: `badge-1`, square: parsed.to, number: 1, color: ARROW_COLORS[0] });
+          arrowBadges.push({ id: `badge-1`, square: parsed.to, number: 1, color: ARROW_PALETTE[0] });
         }
       }
     }
@@ -825,14 +850,14 @@ export default function ChessApp() {
                 <div className="eval-bar-controls">
                   <button
                     className="eval-control-btn"
-                    onClick={() => setEngineLineCount(Math.max(1, engineLineCount - 1))}
+                    onClick={() => handleSetLineCount(engineLineCount - 1)}
                     title="Fewer Lines"
                   >
                     <Minus size={13} />
                   </button>
                   <button
                     className="eval-control-btn"
-                    onClick={() => setEngineLineCount(Math.min(10, engineLineCount + 1))}
+                    onClick={() => handleSetLineCount(engineLineCount + 1)}
                     title="More Lines"
                   >
                     <Plus size={13} />
@@ -848,13 +873,13 @@ export default function ChessApp() {
               </div>
             </div>
 
-            {/* Multi-PV Engine Lines (Shown ONLY on mobile screens, hidden on desktop!) */}
+            {/* Multi-PV Engine Lines (Shown on mobile screens, hidden on desktop where it's in right hub) */}
             <div className="engine-variations-container">
               <div className="variations-header-pill">
                 <span>Engines lines (Variations): {engineLineCount}</span>
                 <div className="variations-counter-group">
-                  <button className="var-count-btn" onClick={() => setEngineLineCount(Math.max(1, engineLineCount - 1))}>-</button>
-                  <button className="var-count-btn" onClick={() => setEngineLineCount(Math.min(10, engineLineCount + 1))}>+</button>
+                  <button className="var-count-btn" onClick={() => handleSetLineCount(engineLineCount - 1)}>-</button>
+                  <button className="var-count-btn" onClick={() => handleSetLineCount(engineLineCount + 1)}>+</button>
                 </div>
               </div>
 
@@ -940,20 +965,26 @@ export default function ChessApp() {
           <div className="widescreen-tab-content">
             {desktopRightTab === 'variations' && (
               <div className="desktop-variations-view">
+                {/* Lines adjuster matching Video 1000015055 */}
                 <div className="variations-header-pill" style={{ marginBottom: 10 }}>
-                  <span>
-                    {enginePaused ? '⏸ Engine Paused' : `Stockfish 16 (${stockfish.depth} depth)`}
-                  </span>
-                  <span className="openings-stats-badge">
-                    {enginePaused ? 'Paused' : (stockfish.nps ? `${Math.round(stockfish.nps / 1000)}k nps` : 'Calculating')}
-                  </span>
+                  <span>Engines lines (Variations): {engineLineCount}</span>
+                  <div className="variations-counter-group">
+                    <button className="var-count-btn" onClick={() => handleSetLineCount(engineLineCount - 1)}>-</button>
+                    <button className="var-count-btn" onClick={() => handleSetLineCount(engineLineCount + 1)}>+</button>
+                  </div>
                 </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', fontSize: 11, color: '#94a3b8' }}>
+                  <span>{enginePaused ? '⏸ Paused' : `Depth: ${stockfish.depth}`}</span>
+                  <span>{stockfish.nps ? `${Math.round(stockfish.nps / 1000)}k nps` : ''}</span>
+                </div>
+
                 {stockfish.multiPvLines.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '24px 12px', color: '#94a3b8', fontSize: 13 }}>
                     {enginePaused ? 'Engine is paused. Tap Play to resume.' : 'Calculating top candidate moves...'}
                   </div>
                 ) : (
-                  stockfish.multiPvLines.map((line, idx) => {
+                  stockfish.multiPvLines.slice(0, engineLineCount).map((line, idx) => {
                     const moveSan = uciToSan(line.moveUci, game.fen());
                     const preview = getLinePreview(line.pvLine, game.fen());
                     const isSelected = selectedCandidateUci === line.moveUci;
