@@ -31,11 +31,11 @@ export interface StockfishState {
 
 interface UseStockfishOptions {
   onBestMove?: (bestMove: string, ponder?: string) => void;
-  defaultMultiPV?: number;  // Default 15 lines
+  defaultMultiPV?: number;
 }
 
 export function useStockfish(options: UseStockfishOptions = {}) {
-  const [multipvCount, setMultipvCount] = useState<number>(options.defaultMultiPV || 15);
+  const [multipvCount, setMultipvCount] = useState<number>(options.defaultMultiPV || 3);
   const [state, setState] = useState<StockfishState>({
     evaluation: 0,
     depth: 0,
@@ -59,12 +59,46 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const onBestMoveRef = useRef(options.onBestMove);
   onBestMoveRef.current = options.onBestMove;
 
+  // Throttle timer for smooth UI without freezing
+  const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUpdateRef = useRef<Partial<StockfishState> | null>(null);
+
+  const flushUpdate = useCallback(() => {
+    if (pendingUpdateRef.current) {
+      setState(prev => ({
+        ...prev,
+        ...pendingUpdateRef.current,
+      }));
+      pendingUpdateRef.current = null;
+    }
+  }, []);
+
+  const scheduleUpdate = useCallback((partial: Partial<StockfishState>) => {
+    pendingUpdateRef.current = {
+      ...(pendingUpdateRef.current || {}),
+      ...partial,
+    };
+
+    if (!throttleTimerRef.current) {
+      throttleTimerRef.current = setTimeout(() => {
+        throttleTimerRef.current = null;
+        flushUpdate();
+      }, 100); // 10fps UI throttle is ideal for engine info
+    }
+  }, [flushUpdate]);
+
   // Initialize worker
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const worker = new Worker('/stockfish.js');
-    workerRef.current = worker;
+    let worker: Worker;
+    try {
+      worker = new Worker('/stockfish.js');
+      workerRef.current = worker;
+    } catch {
+      console.warn("Stockfish worker could not be started.");
+      return;
+    }
 
     worker.onmessage = (event) => {
       const line = event.data;
@@ -73,7 +107,6 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       // Ready signal
       if (line.includes('readyok')) {
         isReadyRef.current = true;
-        // Configure MultiPV to 15
         worker.postMessage(`setoption name MultiPV value ${multipvCount}`);
         setState(prev => ({ ...prev, isReady: true }));
       }
@@ -120,30 +153,29 @@ export function useStockfish(options: UseStockfishOptions = {}) {
           });
         }
 
-        // Sort all multipv lines by rank
+        // Sort lines
         const sortedLines = Array.from(multiPvMapRef.current.values())
           .sort((a, b) => a.multipv - b.multipv);
 
-        setState(prev => {
-          const next = { ...prev };
+        const updateData: Partial<StockfishState> = {
+          multiPvLines: sortedLines,
+        };
 
-          if (currentDepth > 0) {
-            next.depth = currentDepth;
-          }
+        if (currentDepth > 0) {
+          updateData.depth = currentDepth;
+        }
 
-          if (currentMultiPV === 1) {
-            next.evaluation = activeTurnRef.current === 'w' ? lineScore : -lineScore;
-            next.isMate = isMate;
-            next.mateIn = activeTurnRef.current === 'w' ? mateIn : -mateIn;
-            if (pvMoves.length > 0) next.pvLine = pvMoves;
-          }
+        if (currentMultiPV === 1) {
+          updateData.evaluation = activeTurnRef.current === 'w' ? lineScore : -lineScore;
+          updateData.isMate = isMate;
+          updateData.mateIn = activeTurnRef.current === 'w' ? mateIn : -mateIn;
+          if (pvMoves.length > 0) updateData.pvLine = pvMoves;
+        }
 
-          next.multiPvLines = sortedLines;
-          if (nodesMatch) next.nodes = parseInt(nodesMatch[1], 10);
-          if (npsMatch) next.nps = parseInt(npsMatch[1], 10);
+        if (nodesMatch) updateData.nodes = parseInt(nodesMatch[1], 10);
+        if (npsMatch) updateData.nps = parseInt(npsMatch[1], 10);
 
-          return next;
-        });
+        scheduleUpdate(updateData);
       }
 
       // Best move
@@ -152,6 +184,12 @@ export function useStockfish(options: UseStockfishOptions = {}) {
         if (match) {
           const bestMove = match[1];
           const ponder = match[2] || '';
+          
+          if (throttleTimerRef.current) {
+            clearTimeout(throttleTimerRef.current);
+            throttleTimerRef.current = null;
+          }
+
           setState(prev => ({
             ...prev,
             bestMove,
@@ -167,10 +205,11 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     worker.postMessage('isready');
 
     return () => {
+      if (throttleTimerRef.current) clearTimeout(throttleTimerRef.current);
       worker.terminate();
       workerRef.current = null;
     };
-  }, []);
+  }, [scheduleUpdate]);
 
   // Update MultiPV option
   const updateMultiPV = useCallback((count: number) => {
@@ -206,7 +245,6 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     activeTurnRef.current = sideToMove;
     multiPvMapRef.current.clear();
     sendCommand('stop');
-    // During actual game play search, use 1 line for maximum speed or keep multiPV
     sendCommand(`setoption name MultiPV value 1`);
     sendCommand(`position fen ${fen}`);
     sendCommand(`go depth ${depth}`);
@@ -216,6 +254,10 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   // Stop current search
   const stop = useCallback(() => {
     sendCommand('stop');
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
     setState(prev => ({ ...prev, isSearching: false }));
   }, [sendCommand]);
 
@@ -226,6 +268,10 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     sendCommand('ucinewgame');
     sendCommand(`setoption name MultiPV value ${multipvCount}`);
     sendCommand('isready');
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
     setState(prev => ({
       ...prev,
       evaluation: 0,

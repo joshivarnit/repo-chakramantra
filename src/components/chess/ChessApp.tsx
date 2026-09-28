@@ -70,6 +70,7 @@ import './chess-app.css';
 export default function ChessApp() {
   // Navigation / Modal States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [activeView, setActiveView] = useState<ActiveView>('analysis');
   const [showEditor, setShowEditor] = useState(false);
   const [showOpenings, setShowOpenings] = useState(false);
@@ -101,6 +102,10 @@ export default function ChessApp() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [speechBubble, setSpeechBubble] = useState<string | null>(null);
   const [hintActive, setHintActive] = useState(false);
+
+  // Caches to prevent CPU starvation and main-thread lag
+  const sanCacheRef = useRef<Map<string, string>>(new Map());
+  const pvCacheRef = useRef<Map<string, string>>(new Map());
 
   // Comprehensive Settings State
   const [settings, setSettings] = useState<ChakraSettings>({
@@ -194,9 +199,23 @@ export default function ChessApp() {
     stockfish.updateMultiPV(engineLineCount);
   }, [engineLineCount, stockfish]);
 
+  // Toggle engine pause explicitly and reliably
+  const toggleEnginePause = useCallback(() => {
+    if (!enginePaused) {
+      stockfish.stop();
+      setEnginePaused(true);
+      showToast('⏸ Engine Analysis Paused');
+    } else {
+      setEnginePaused(false);
+      stockfish.analyze(game.fen(), settings.engineDepth);
+      showToast('▶ Engine Analysis Resumed');
+    }
+  }, [enginePaused, stockfish, game, settings.engineDepth, showToast]);
+
   // Position feed to engine
   useEffect(() => {
     if (enginePaused) return;
+
     const fen = game.fen();
     const isAtEnd = currentMoveIndex === moveHistory.length - 1 || moveHistory.length === 0;
 
@@ -569,21 +588,33 @@ export default function ChessApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goBack, goForward, goToStart, goToEnd, flipBoard]);
 
-  // Convert UCI to Figurine SAN
-  const uciToSan = (uci: string, boardFen: string): string => {
+  // Memoized UCI to SAN converter (Eliminates main-thread freeze!)
+  const uciToSan = useCallback((uci: string, boardFen: string): string => {
     if (!uci || uci.length < 4) return uci;
+    const key = `${boardFen}_${uci}`;
+    if (sanCacheRef.current.has(key)) {
+      return sanCacheRef.current.get(key)!;
+    }
     try {
       const tempGame = new Chess(boardFen);
       const res = tempGame.move({ from: uci.substring(0, 2), to: uci.substring(2, 4), promotion: uci[4] || 'q' });
-      if (res) return settings.figurineNotation ? toFigurineNotation(res.san) : res.san;
+      if (res) {
+        const result = settings.figurineNotation ? toFigurineNotation(res.san) : res.san;
+        sanCacheRef.current.set(key, result);
+        return result;
+      }
     } catch {
       // fallback
     }
     return uci;
-  };
+  }, [settings.figurineNotation]);
 
-  const getLinePreview = (pv: string[], fen: string) => {
+  const getLinePreview = useCallback((pv: string[], fen: string) => {
     if (!pv || pv.length <= 1) return '';
+    const key = `${fen}_${pv.slice(0, 5).join('_')}`;
+    if (pvCacheRef.current.has(key)) {
+      return pvCacheRef.current.get(key)!;
+    }
     try {
       const temp = new Chess(fen);
       const moves: string[] = [];
@@ -592,14 +623,25 @@ export default function ChessApp() {
         if (!res) break;
         if (i > 0) moves.push(settings.figurineNotation ? toFigurineNotation(res.san) : res.san);
       }
-      return moves.join(' ');
+      const out = moves.join(' ');
+      pvCacheRef.current.set(key, out);
+      return out;
     } catch {
       return pv.slice(1, 5).join(' ');
     }
-  };
+  }, [settings.figurineNotation]);
 
   const evalFormatted = (stockfish.evaluation >= 0 ? '+' : '') + (stockfish.evaluation / 100).toFixed(2);
   const evalPercent = Math.min(100, Math.max(0, 50 + (stockfish.evaluation / 100) * 8));
+
+  // Handle drawer button click (mobile opens drawer, desktop toggles sidebar)
+  const handleMenuButtonClick = () => {
+    if (window.innerWidth < 900) {
+      setIsDrawerOpen(true);
+    } else {
+      setDesktopSidebarOpen(prev => !prev);
+    }
+  };
 
   return (
     <div className="chess-app">
@@ -610,8 +652,8 @@ export default function ChessApp() {
         <div className="chess-top-left">
           <button
             className="chess-drawer-btn"
-            onClick={() => setIsDrawerOpen(true)}
-            aria-label="Open Navigation Drawer"
+            onClick={handleMenuButtonClick}
+            aria-label="Toggle Navigation Drawer"
             title="Menu"
           >
             <Menu size={22} />
@@ -651,8 +693,8 @@ export default function ChessApp() {
             <Repeat size={16} />
           </button>
           <button
-            className="chess-header-icon-btn"
-            onClick={() => setEnginePaused(!enginePaused)}
+            className={`chess-header-icon-btn ${enginePaused ? 'paused-indicator' : ''}`}
+            onClick={toggleEnginePause}
             title={enginePaused ? 'Resume Engine Analysis' : 'Pause Engine Analysis'}
           >
             {enginePaused ? <Play size={16} /> : <Pause size={16} />}
@@ -675,7 +717,7 @@ export default function ChessApp() {
           ────────────────────────────────────────────────────────────────── */}
       <div className="chess-app-desktop-container">
         {/* Left Desktop Persistent Sidebar */}
-        <aside className="desktop-persistent-sidebar">
+        <aside className={`desktop-persistent-sidebar ${desktopSidebarOpen ? '' : 'collapsed'}`}>
           <div className="drawer-header">
             <div className="drawer-profile">
               <div className="drawer-avatar-ring">
@@ -771,7 +813,7 @@ export default function ChessApp() {
               <div className="eval-bar-content">
                 <div className="eval-text-pill">
                   {enginePaused ? (
-                    <span>⏸ Engine Paused</span>
+                    <span style={{ color: '#f59e0b' }}>⏸ Engine Paused</span>
                   ) : (
                     <>
                       <span>{currentOpening ? currentOpening.name : 'Stockfish 16'}</span>
@@ -797,8 +839,8 @@ export default function ChessApp() {
                   </button>
                   <button
                     className="eval-control-btn"
-                    onClick={() => setEnginePaused(!enginePaused)}
-                    title={enginePaused ? 'Resume' : 'Pause'}
+                    onClick={toggleEnginePause}
+                    title={enginePaused ? 'Resume Engine' : 'Pause Engine'}
                   >
                     {enginePaused ? <Play size={13} /> : <Pause size={13} />}
                   </button>
@@ -806,7 +848,7 @@ export default function ChessApp() {
               </div>
             </div>
 
-            {/* Multi-PV Engine Lines (Shown directly under board on mobile) */}
+            {/* Multi-PV Engine Lines (Shown ONLY on mobile screens, hidden on desktop!) */}
             <div className="engine-variations-container">
               <div className="variations-header-pill">
                 <span>Engines lines (Variations): {engineLineCount}</span>
@@ -838,7 +880,7 @@ export default function ChessApp() {
               })}
             </div>
 
-            {/* Fixed Bottom Dock Toolbar (Video 00:00, 00:03, 00:43) */}
+            {/* Bottom Dock Toolbar (Video 00:00, 00:03, 00:43) */}
             <div className="chess-bottom-dock">
               <button className="dock-btn" onClick={() => newGame('analysis', 'w', settings.engineDepth)} title="Reset Board">
                 <RotateCcw size={20} />
@@ -872,7 +914,7 @@ export default function ChessApp() {
           </div>
         </main>
 
-        {/* Right Desktop Widescreen Hub (Taking full advantage of side space!) */}
+        {/* Right Desktop Widescreen Hub (Clean, Non-Smushed, Fully Scrollable) */}
         <aside className="desktop-right-widescreen-hub">
           <div className="widescreen-tabs-header">
             <button
@@ -899,30 +941,40 @@ export default function ChessApp() {
             {desktopRightTab === 'variations' && (
               <div className="desktop-variations-view">
                 <div className="variations-header-pill" style={{ marginBottom: 10 }}>
-                  <span>Stockfish 16 NNUE Variations ({stockfish.depth} depth)</span>
-                  <span className="openings-stats-badge">{stockfish.nps ? `${Math.round(stockfish.nps / 1000)}k nps` : 'Calculating'}</span>
+                  <span>
+                    {enginePaused ? '⏸ Engine Paused' : `Stockfish 16 (${stockfish.depth} depth)`}
+                  </span>
+                  <span className="openings-stats-badge">
+                    {enginePaused ? 'Paused' : (stockfish.nps ? `${Math.round(stockfish.nps / 1000)}k nps` : 'Calculating')}
+                  </span>
                 </div>
-                {stockfish.multiPvLines.map((line, idx) => {
-                  const moveSan = uciToSan(line.moveUci, game.fen());
-                  const preview = getLinePreview(line.pvLine, game.fen());
-                  const isSelected = selectedCandidateUci === line.moveUci;
-                  const scoreText = line.isMate ? (line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`) : ((line.score >= 0 ? '+' : '') + (line.score / 100).toFixed(2));
-                  return (
-                    <div
-                      key={idx}
-                      className={`variation-line-card ${isSelected ? 'active-line' : ''}`}
-                      onClick={() => setSelectedCandidateUci(isSelected ? null : line.moveUci)}
-                      style={{ marginBottom: 8 }}
-                    >
-                      <span className={`line-eval-badge ${line.score > 0 ? 'positive' : line.score < 0 ? 'negative' : ''}`}>
-                        {scoreText}
-                      </span>
-                      <span className="line-moves-sequence">
-                        <strong>#{line.multipv} {moveSan}</strong> {preview}
-                      </span>
-                    </div>
-                  );
-                })}
+                {stockfish.multiPvLines.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px 12px', color: '#94a3b8', fontSize: 13 }}>
+                    {enginePaused ? 'Engine is paused. Tap Play to resume.' : 'Calculating top candidate moves...'}
+                  </div>
+                ) : (
+                  stockfish.multiPvLines.map((line, idx) => {
+                    const moveSan = uciToSan(line.moveUci, game.fen());
+                    const preview = getLinePreview(line.pvLine, game.fen());
+                    const isSelected = selectedCandidateUci === line.moveUci;
+                    const scoreText = line.isMate ? (line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`) : ((line.score >= 0 ? '+' : '') + (line.score / 100).toFixed(2));
+                    return (
+                      <div
+                        key={idx}
+                        className={`variation-line-card ${isSelected ? 'active-line' : ''}`}
+                        onClick={() => setSelectedCandidateUci(isSelected ? null : line.moveUci)}
+                        style={{ marginBottom: 8 }}
+                      >
+                        <span className={`line-eval-badge ${line.score > 0 ? 'positive' : line.score < 0 ? 'negative' : ''}`}>
+                          {scoreText}
+                        </span>
+                        <span className="line-moves-sequence">
+                          <strong>#{line.multipv} {moveSan}</strong> {preview}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
 
