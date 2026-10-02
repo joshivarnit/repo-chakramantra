@@ -9,11 +9,11 @@ export interface AnalyzedDraft {
 
 import { CHAKRA_TOPICS } from "./constants";
 
-function cleanJsonString(str: string): any {
+function cleanJsonString(str: string): unknown {
   const start = str.indexOf('{');
   const end = str.lastIndexOf('}');
   if (start === -1 || end === -1) throw new Error("No JSON object found in response");
-  let json = str.slice(start, end + 1);
+  const json = str.slice(start, end + 1);
 
   try {
     return JSON.parse(json);

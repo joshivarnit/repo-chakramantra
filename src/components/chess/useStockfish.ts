@@ -31,12 +31,13 @@ export interface StockfishState {
 }
 
 interface UseStockfishOptions {
-  onBestMove?: (bestMove: string, ponder?: string) => void;
+  onBestMove?: (bestMove: string, ponder?: string, analyzedFen?: string) => void;
   defaultMultiPV?: number;
 }
 
 export function useStockfish(options: UseStockfishOptions = {}) {
   const [multipvCount, setMultipvCount] = useState<number>(options.defaultMultiPV || 3);
+  const multipvRef = useRef<number>(options.defaultMultiPV || 3);
   const [state, setState] = useState<StockfishState>({
     analyzedFen: '',
     evaluation: 0,
@@ -58,10 +59,12 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const isReadyRef = useRef(false);
   const activeTurnRef = useRef<'w' | 'b'>('w');
   const currentAnalyzingFenRef = useRef<string>('');
-  const lastDepthRef = useRef<number>(20);
+  const lastDepthRef = useRef<number>(14);
   const multiPvMapRef = useRef<Map<number, MultiPVLine>>(new Map());
   const onBestMoveRef = useRef(options.onBestMove);
-  onBestMoveRef.current = options.onBestMove;
+  useEffect(() => {
+    onBestMoveRef.current = options.onBestMove;
+  }, [options.onBestMove]);
 
   // Throttle timer for smooth UI without freezing
   const throttleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,7 +90,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       throttleTimerRef.current = setTimeout(() => {
         throttleTimerRef.current = null;
         flushUpdate();
-      }, 90);
+      }, 60);
     }
   }, [flushUpdate]);
 
@@ -111,7 +114,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       // Ready signal
       if (line.includes('readyok')) {
         isReadyRef.current = true;
-        worker.postMessage(`setoption name MultiPV value ${multipvCount}`);
+        worker.postMessage(`setoption name MultiPV value ${multipvRef.current}`);
         setState(prev => ({ ...prev, isReady: true }));
       }
 
@@ -143,7 +146,8 @@ export function useStockfish(options: UseStockfishOptions = {}) {
         const pvMoves = pvMatch ? pvMatch[1].trim().split(/\s+/) : [];
         const moveUci = pvMoves[0] || '';
 
-        if (moveUci) {
+        // Only store lines up to current user-selected multipv limit
+        if (moveUci && currentMultiPV <= multipvRef.current) {
           const scoreFromWhite = activeTurnRef.current === 'w' ? lineScore : -lineScore;
           multiPvMapRef.current.set(currentMultiPV, {
             multipv: currentMultiPV,
@@ -157,8 +161,9 @@ export function useStockfish(options: UseStockfishOptions = {}) {
           });
         }
 
-        // Sort lines
+        // Sort and filter active lines
         const sortedLines = Array.from(multiPvMapRef.current.values())
+          .filter(l => l.multipv <= multipvRef.current)
           .sort((a, b) => a.multipv - b.multipv);
 
         const updateData: Partial<StockfishState> = {
@@ -181,7 +186,20 @@ export function useStockfish(options: UseStockfishOptions = {}) {
         if (nodesMatch) updateData.nodes = parseInt(nodesMatch[1], 10);
         if (npsMatch) updateData.nps = parseInt(npsMatch[1], 10);
 
-        scheduleUpdate(updateData);
+        // Immediate flush on the first depth line for a new position so arrows appear in <30ms!
+        if (currentAnalyzingFenRef.current && state.analyzedFen !== currentAnalyzingFenRef.current && sortedLines.length > 0) {
+          if (throttleTimerRef.current) {
+            clearTimeout(throttleTimerRef.current);
+            throttleTimerRef.current = null;
+          }
+          pendingUpdateRef.current = null;
+          setState(prev => ({
+            ...prev,
+            ...updateData,
+          }));
+        } else {
+          scheduleUpdate(updateData);
+        }
       }
 
       // Best move
@@ -195,6 +213,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
             clearTimeout(throttleTimerRef.current);
             throttleTimerRef.current = null;
           }
+          flushUpdate();
 
           setState(prev => ({
             ...prev,
@@ -202,7 +221,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
             ponderMove: ponder,
             isSearching: false,
           }));
-          onBestMoveRef.current?.(bestMove, ponder || undefined);
+          onBestMoveRef.current?.(bestMove, ponder || undefined, currentAnalyzingFenRef.current);
         }
       }
     };
@@ -215,7 +234,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       worker.terminate();
       workerRef.current = null;
     };
-  }, [scheduleUpdate]);
+  }, [scheduleUpdate, flushUpdate, state.analyzedFen]);
 
   // Send command
   const sendCommand = useCallback((cmd: string) => {
@@ -225,6 +244,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   // Update MultiPV option and instantly re-run analysis if active
   const updateMultiPV = useCallback((count: number, currentFen?: string, currentDepth?: number) => {
     const clamped = Math.max(1, Math.min(20, count));
+    multipvRef.current = clamped;
     setMultipvCount(clamped);
 
     if (throttleTimerRef.current) {
@@ -234,13 +254,12 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     pendingUpdateRef.current = null;
     multiPvMapRef.current.clear();
 
-    if (workerRef.current && isReadyRef.current) {
+    const fen = currentFen || currentAnalyzingFenRef.current;
+    const depth = currentDepth || lastDepthRef.current || 14;
+
+    if (workerRef.current) {
       workerRef.current.postMessage('stop');
       workerRef.current.postMessage(`setoption name MultiPV value ${clamped}`);
-      workerRef.current.postMessage('isready');
-
-      const fen = currentFen || currentAnalyzingFenRef.current;
-      const depth = currentDepth || lastDepthRef.current || 20;
 
       if (fen) {
         currentAnalyzingFenRef.current = fen;
@@ -248,20 +267,21 @@ export function useStockfish(options: UseStockfishOptions = {}) {
         activeTurnRef.current = sideToMove;
         workerRef.current.postMessage(`position fen ${fen}`);
         workerRef.current.postMessage(`go depth ${depth}`);
-        setState(prev => ({
-          ...prev,
-          analyzedFen: '',
-          isSearching: true,
-          bestMove: '',
-          pvLine: [],
-          multiPvLines: [],
-        }));
       }
     }
+
+    setState(prev => ({
+      ...prev,
+      analyzedFen: fen || prev.analyzedFen,
+      isSearching: true,
+      bestMove: '',
+      pvLine: [],
+      multiPvLines: [],
+    }));
   }, []);
 
   // Start analysis of a position
-  const analyze = useCallback((fen: string, depth: number = 20, activeTurn?: 'w' | 'b') => {
+  const analyze = useCallback((fen: string, depth: number = 14, activeTurn?: 'w' | 'b') => {
     if (!workerRef.current) return;
     const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
     activeTurnRef.current = sideToMove;
@@ -276,7 +296,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     multiPvMapRef.current.clear();
 
     sendCommand('stop');
-    sendCommand(`setoption name MultiPV value ${multipvCount}`);
+    sendCommand(`setoption name MultiPV value ${multipvRef.current}`);
     sendCommand(`position fen ${fen}`);
     sendCommand(`go depth ${depth}`);
 
@@ -288,10 +308,10 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       pvLine: [],
       multiPvLines: [],
     }));
-  }, [sendCommand, multipvCount]);
+  }, [sendCommand]);
 
   // Start analysis for playing
-  const play = useCallback((fen: string, depth: number = 15, activeTurn?: 'w' | 'b') => {
+  const play = useCallback((fen: string, depth: number = 12, activeTurn?: 'w' | 'b') => {
     if (!workerRef.current) return;
     const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
     activeTurnRef.current = sideToMove;
@@ -337,7 +357,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     currentAnalyzingFenRef.current = '';
     sendCommand('stop');
     sendCommand('ucinewgame');
-    sendCommand(`setoption name MultiPV value ${multipvCount}`);
+    sendCommand(`setoption name MultiPV value ${multipvRef.current}`);
     sendCommand('isready');
     if (throttleTimerRef.current) {
       clearTimeout(throttleTimerRef.current);
@@ -358,7 +378,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       nodes: 0,
       nps: 0,
     }));
-  }, [sendCommand, multipvCount]);
+  }, [sendCommand]);
 
   return {
     ...state,

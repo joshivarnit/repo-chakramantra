@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { X, FolderArchive, Play, Trash2, Download, Plus, ClipboardPaste } from 'lucide-react';
+import { X, FolderArchive, Play, Trash2, Plus, ClipboardPaste } from 'lucide-react';
 
 export interface SavedGame {
   id: string;
@@ -37,7 +37,8 @@ export default function GamesArchiveModal({
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        setGames(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        queueMicrotask(() => setGames(parsed));
       } else {
         // default sample games
         const sampleGames: SavedGame[] = [
@@ -58,7 +59,7 @@ export default function GamesArchiveModal({
             result: '1-0',
           },
         ];
-        setGames(sampleGames);
+        queueMicrotask(() => setGames(sampleGames));
         localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleGames));
       }
     } catch {

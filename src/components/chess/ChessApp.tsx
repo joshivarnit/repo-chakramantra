@@ -31,7 +31,7 @@ import {
 
 import { useStockfish } from './useStockfish';
 import { useGameState } from './useGameState';
-import { BOARD_THEMES, type BoardTheme } from './themes';
+import { BOARD_THEMES, type BoardTheme, type MoveClassification } from './themes';
 import {
   parseBestMove,
   getThreatenedSquares,
@@ -66,6 +66,10 @@ import { detectOpening, type Opening } from './openings';
 import MoveHistory from './MoveHistory';
 
 import './chess-app.css';
+
+// Module-level memoization caches to prevent main-thread lag without violating React render purity
+const sanGlobalCache = new Map<string, string>();
+const pvGlobalCache = new Map<string, string>();
 
 // 20-color progression for multi-line analysis arrows matching Chessis Pro video
 const ARROW_PALETTE = [
@@ -127,9 +131,7 @@ export default function ChessApp() {
   const [speechBubble, setSpeechBubble] = useState<string | null>(null);
   const [hintActive, setHintActive] = useState(false);
 
-  // Caches to prevent CPU starvation and main-thread lag
-  const sanCacheRef = useRef<Map<string, string>>(new Map());
-  const pvCacheRef = useRef<Map<string, string>>(new Map());
+
 
   // Comprehensive Settings State
   const [settings, setSettings] = useState<ChakraSettings>({
@@ -184,7 +186,7 @@ export default function ChessApp() {
   }, []);
 
   // Audio trigger
-  const triggerMoveSound = useCallback((moveResult: any, updatedGame: Chess) => {
+  const triggerMoveSound = useCallback((moveResult: { captured?: string | boolean } | null | undefined, updatedGame: Chess) => {
     if (!settings.soundEnabled) return;
     if (updatedGame.isGameOver()) {
       playGameOverSound();
@@ -197,19 +199,26 @@ export default function ChessApp() {
     }
   }, [settings.soundEnabled]);
 
+  const botMoveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Handle engine best move in Play mode
-  const handleEngineBestMove = useCallback((bestMoveUci: string) => {
+  const handleEngineBestMove = useCallback((bestMoveUci: string, _ponder?: string, analyzedFen?: string) => {
     if (mode !== 'play') return;
     if (game.turn() === playerColor) return;
+    // Guard against stale bestmove calculations from past turns
+    if (analyzedFen && analyzedFen !== game.fen()) return;
 
     const parsed = parseBestMove(bestMoveUci);
     if (parsed) {
-      setTimeout(() => {
-        const move = makeMove(parsed);
-        if (move) {
-          triggerMoveSound(move, game);
+      if (botMoveTimeoutRef.current) clearTimeout(botMoveTimeoutRef.current);
+      botMoveTimeoutRef.current = setTimeout(() => {
+        if (mode === 'play' && game.turn() !== playerColor) {
+          const move = makeMove(parsed);
+          if (move) {
+            triggerMoveSound(move, game);
+          }
         }
-      }, 400);
+      }, 350);
     }
   }, [mode, game, playerColor, makeMove, triggerMoveSound]);
 
@@ -223,7 +232,7 @@ export default function ChessApp() {
     const clamped = Math.max(1, Math.min(20, newCount));
     setEngineLineCount(clamped);
     stockfish.updateMultiPV(clamped, game.fen(), settings.engineDepth);
-    showToast(`Engines lines (Variations): ${clamped}`);
+    showToast(`Engine lines (Variations): ${clamped}`);
   }, [stockfish, game, settings.engineDepth, showToast]);
 
   // Toggle engine pause explicitly and reliably
@@ -300,6 +309,10 @@ export default function ChessApp() {
     });
 
     if (move) {
+      if (botMoveTimeoutRef.current) {
+        clearTimeout(botMoveTimeoutRef.current);
+        botMoveTimeoutRef.current = null;
+      }
       triggerMoveSound(move, game);
       setSelectedSquare(null);
       setPossibleMoves([]);
@@ -312,8 +325,8 @@ export default function ChessApp() {
   }, [mode, game, playerColor, currentMoveIndex, moveHistory.length, makeMove, triggerMoveSound]);
 
   // Tap-to-move for touchscreens & smartphones
-  const onSquareClick = useCallback((args: any) => {
-    const square = args?.square;
+  const onSquareClick = useCallback((args: { square?: string } | string) => {
+    const square = typeof args === 'string' ? args : args?.square;
     if (!square) return;
 
     if (mode === 'play' && game.turn() !== playerColor) return;
@@ -333,6 +346,10 @@ export default function ChessApp() {
           promotion: 'q',
         });
         if (move) {
+          if (botMoveTimeoutRef.current) {
+            clearTimeout(botMoveTimeoutRef.current);
+            botMoveTimeoutRef.current = null;
+          }
           triggerMoveSound(move, game);
         }
         setSelectedSquare(null);
@@ -374,7 +391,16 @@ export default function ChessApp() {
     setActiveView(view);
     switch (view) {
       case 'analysis':
+        if (botMoveTimeoutRef.current) {
+          clearTimeout(botMoveTimeoutRef.current);
+          botMoveTimeoutRef.current = null;
+        }
+        setSelectedSquare(null);
+        setPossibleMoves([]);
+        setSelectedCandidateUci(null);
+        setHintActive(false);
         newGame('analysis', 'w', settings.engineDepth);
+        stockfish.newGame();
         showToast('Switched to Analysis Board');
         break;
       case 'play':
@@ -410,6 +436,15 @@ export default function ChessApp() {
     chess960: boolean;
     startFen?: string;
   }) => {
+    if (botMoveTimeoutRef.current) {
+      clearTimeout(botMoveTimeoutRef.current);
+      botMoveTimeoutRef.current = null;
+    }
+    setSelectedSquare(null);
+    setPossibleMoves([]);
+    setSelectedCandidateUci(null);
+    setHintActive(false);
+
     const chosenColor = config.color === 'random' ? (Math.random() > 0.5 ? 'w' : 'b') : config.color;
     setPlayElo(config.elo);
     newGame('play', chosenColor, Math.min(18, Math.max(3, Math.round(config.elo / 150))));
@@ -435,7 +470,7 @@ export default function ChessApp() {
     );
     const classifications = playerMoves
       .filter(m => m.classification)
-      .map(m => m.classification as any);
+      .map(m => m.classification as MoveClassification);
     const cpLosses = playerMoves
       .filter(m => m.cpLoss !== undefined)
       .map(m => m.cpLoss as number);
@@ -457,6 +492,21 @@ export default function ChessApp() {
       showToast(`Loaded ${op.eco}: ${op.name}`);
     }, 100);
   };
+
+  // Reset board to starting position cleanly
+  const handleResetBoard = useCallback(() => {
+    if (botMoveTimeoutRef.current) {
+      clearTimeout(botMoveTimeoutRef.current);
+      botMoveTimeoutRef.current = null;
+    }
+    setSelectedSquare(null);
+    setPossibleMoves([]);
+    setSelectedCandidateUci(null);
+    setHintActive(false);
+    stockfish.newGame();
+    newGame(mode, playerColor, settings.engineDepth);
+    showToast('Board reset to starting position');
+  }, [mode, playerColor, settings.engineDepth, newGame, stockfish, showToast]);
 
   // Trigger hint
   const handleToggleHint = () => {
@@ -554,12 +604,13 @@ export default function ChessApp() {
   }
 
   // Multi-color Tactical Arrows & Number Badges (#1 Blue, #2 Green, #3 Orange, #4 Yellow, etc.)
-  // CRITICAL FIX: Only draw arrows if results correspond to CURRENT board position and user is not selecting a piece!
+  // CRITICAL FIX: Only draw arrows if results correspond to CURRENT board position, it is the player's turn, and user is not selecting a piece!
+  const isHumanTurn = mode !== 'play' || game.turn() === playerColor;
   const isPositionCurrent = stockfish.analyzedFen === game.fen();
   const customArrows: Array<{ startSquare: string; endSquare: string; color: string }> = [];
   const arrowBadges: ArrowBadge[] = [];
 
-  if (settings.drawArrows && settings.showAnalysisArrows && !enginePaused && !selectedSquare && isPositionCurrent) {
+  if (settings.drawArrows && settings.showAnalysisArrows && !enginePaused && !selectedSquare && isPositionCurrent && isHumanTurn) {
     if (selectedCandidateUci) {
       const parsed = parseBestMove(selectedCandidateUci);
       if (parsed) {
@@ -617,15 +668,16 @@ export default function ChessApp() {
   const uciToSan = useCallback((uci: string, boardFen: string): string => {
     if (!uci || uci.length < 4) return uci;
     const key = `${boardFen}_${uci}`;
-    if (sanCacheRef.current.has(key)) {
-      return sanCacheRef.current.get(key)!;
+    if (sanGlobalCache.has(key)) {
+      return sanGlobalCache.get(key)!;
     }
     try {
       const tempGame = new Chess(boardFen);
       const res = tempGame.move({ from: uci.substring(0, 2), to: uci.substring(2, 4), promotion: uci[4] || 'q' });
       if (res) {
         const result = settings.figurineNotation ? toFigurineNotation(res.san) : res.san;
-        sanCacheRef.current.set(key, result);
+        if (sanGlobalCache.size > 2000) sanGlobalCache.clear();
+        sanGlobalCache.set(key, result);
         return result;
       }
     } catch {
@@ -637,8 +689,8 @@ export default function ChessApp() {
   const getLinePreview = useCallback((pv: string[], fen: string) => {
     if (!pv || pv.length <= 1) return '';
     const key = `${fen}_${pv.slice(0, 5).join('_')}`;
-    if (pvCacheRef.current.has(key)) {
-      return pvCacheRef.current.get(key)!;
+    if (pvGlobalCache.has(key)) {
+      return pvGlobalCache.get(key)!;
     }
     try {
       const temp = new Chess(fen);
@@ -649,7 +701,8 @@ export default function ChessApp() {
         if (i > 0) moves.push(settings.figurineNotation ? toFigurineNotation(res.san) : res.san);
       }
       const out = moves.join(' ');
-      pvCacheRef.current.set(key, out);
+      if (pvGlobalCache.size > 2000) pvGlobalCache.clear();
+      pvGlobalCache.set(key, out);
       return out;
     } catch {
       return pv.slice(1, 5).join(' ');
@@ -907,7 +960,7 @@ export default function ChessApp() {
 
             {/* Bottom Dock Toolbar (Video 00:00, 00:03, 00:43) */}
             <div className="chess-bottom-dock">
-              <button className="dock-btn" onClick={() => newGame('analysis', 'w', settings.engineDepth)} title="Reset Board">
+              <button className="dock-btn" onClick={handleResetBoard} title="Reset Board">
                 <RotateCcw size={20} />
               </button>
               <button className="dock-btn" onClick={flipBoard} title="Flip Board">

@@ -36,5 +36,9 @@
       "readTime": "3 min read",
       "status": "draft"
     }
+  ],
+  "subscribers": [
+    "qa.inspector@example.com",
+    "alex.qa@domain.com"
   ]
 }

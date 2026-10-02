@@ -115,6 +115,7 @@ export default function ScrollWheelAnimation({ postIds = [] }: { postIds?: strin
               src="/chakra-3d-ring.jpg"
               alt="3D Chakra Energy Ring"
               fill
+              sizes="(max-width: 768px) 100vw, 500px"
               className="object-cover rounded-full chakra-ring-overlay"
               priority
             />

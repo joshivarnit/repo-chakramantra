@@ -36,11 +36,42 @@ export default function PublicApiScrollStream() {
         const res = await fetch('https://public-api-lists.github.io/public-api-lists/api/all.json');
         if (res.ok) {
           const data = await res.json();
-          const items: PublicAPI[] = data.entries || data || [];
-          if (items.length > 0) {
-            setApis(items);
-            const cats = Array.from(new Set(items.map(item => item.Category))).filter(Boolean).sort();
-            setCategories(['All', ...cats.slice(0, 12)]);
+          interface RawApiEntry {
+            name?: string;
+            API?: string;
+            title?: string;
+            url?: string;
+            Link?: string;
+            link?: string;
+            homepage?: string;
+            description?: string;
+            Description?: string;
+            auth?: string;
+            Auth?: string;
+            https?: boolean | string | number;
+            HTTPS?: boolean | string | number;
+            cors?: string;
+            Cors?: string;
+            category?: string;
+            Category?: string;
+          }
+          const rawItems: RawApiEntry[] = data.entries || (Array.isArray(data) ? data : []);
+          const normalized: PublicAPI[] = rawItems
+            .map((item: RawApiEntry) => ({
+              API: item.name || item.API || item.title || "Public API",
+              Link: item.url || item.Link || item.link || item.homepage || "",
+              Description: item.description || item.Description || "Open public developer API endpoint.",
+              Auth: item.auth || item.Auth || "No",
+              HTTPS: item.https !== undefined ? Boolean(item.https) : (item.HTTPS !== undefined ? Boolean(item.HTTPS) : true),
+              Cors: item.cors || item.Cors || "Unknown",
+              Category: item.category || item.Category || "General",
+            }))
+            .filter((item: PublicAPI) => item.Link && item.Link.startsWith('http'));
+
+          if (normalized.length > 0) {
+            setApis(normalized);
+            const cats = Array.from(new Set(normalized.map(item => item.Category))).filter(Boolean).sort();
+            setCategories(['All', ...cats.slice(0, 16)]);
           }
         }
       } catch {

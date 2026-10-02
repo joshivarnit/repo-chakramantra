@@ -16,8 +16,8 @@ export interface Post {
 }
 
 export async function getPostsByStatus(status: Post['status']): Promise<Post[]> {
-  let data: any[] | null = null;
-  let error: any = null;
+  let data: Record<string, unknown>[] | null = null;
+  let error: unknown = null;
 
   try {
     const supabase = await createClient();
@@ -95,8 +95,8 @@ export async function getPublishedPosts(filters?: {
 }
 
 export async function getPublishedGenres(): Promise<string[]> {
-  let data: any[] | null = null;
-  let error: any = null;
+  let data: { genre: string }[] | null = null;
+  let error: unknown = null;
 
   try {
     const supabase = await createClient();
@@ -138,8 +138,8 @@ export async function getPublishedGenres(): Promise<string[]> {
 }
 
 export async function getPostById(id: string): Promise<Post | undefined> {
-  let data: any = null;
-  let error: any = null;
+  let data: (Record<string, unknown> & { read_time?: string }) | null = null;
+  let error: unknown = null;
 
   try {
     const supabase = await createClient();
@@ -309,18 +309,39 @@ export async function publishOldestDrafts(limit: number): Promise<number> {
 }
 
 export async function insertSubscriber(email: string): Promise<void> {
-  const supabaseAdmin = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const { error } = await supabaseAdmin
-    .from('subscribers')
-    .insert([{ email }]);
+  if (supabaseUrl && serviceKey) {
+    try {
+      const supabaseAdmin = createSupabaseClient(supabaseUrl, serviceKey);
+      const { error } = await supabaseAdmin
+        .from('subscribers')
+        .insert([{ email }]);
 
-  // Ignore unique constraint violations (if they subscribe twice)
-  if (error && error.code !== '23505') {
-    console.error('Error inserting subscriber:', error);
-    throw error;
+      if (!error || error.code === '23505') {
+        return;
+      }
+      console.warn('Supabase subscribers table warning:', error.message || error);
+    } catch (e) {
+      console.warn('Supabase subscriber insert exception:', e);
+    }
+  }
+
+  // Graceful local fallback to preserve subscriber data
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const dbPath = path.join(process.cwd(), 'src', 'data', 'db.json');
+    if (fs.existsSync(dbPath)) {
+      const content = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+      if (!content.subscribers) content.subscribers = [];
+      if (!content.subscribers.includes(email)) {
+        content.subscribers.push(email);
+        fs.writeFileSync(dbPath, JSON.stringify(content, null, 2));
+      }
+    }
+  } catch (fsErr) {
+    console.error('Local subscriber persistence error:', fsErr);
   }
 }

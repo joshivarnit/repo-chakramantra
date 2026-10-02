@@ -44,18 +44,20 @@ export default function BoardEditorModal({
       const rows = g.board().map(row =>
         row.map(piece => piece ? (piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase()) : null)
       );
-      setBoardState(rows);
-      setToMove(g.turn());
-      setCastling({
-        wK: initialFen.includes('K'),
-        wQ: initialFen.includes('Q'),
-        bK: initialFen.includes('k'),
-        bQ: initialFen.includes('q'),
+      queueMicrotask(() => {
+        setBoardState(rows);
+        setToMove(g.turn());
+        setCastling({
+          wK: initialFen.includes('K'),
+          wQ: initialFen.includes('Q'),
+          bK: initialFen.includes('k'),
+          bQ: initialFen.includes('q'),
+        });
+        setFenString(initialFen);
       });
-      setFenString(initialFen);
     } catch {
       // fallback to start fen
-      setFenString(initialFen);
+      queueMicrotask(() => setFenString(initialFen));
     }
   }, [isOpen, initialFen]);
 

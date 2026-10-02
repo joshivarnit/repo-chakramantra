@@ -69,6 +69,7 @@ export default function AboutPage() {
                       src="/chakra-3d-sphere.jpg"
                       alt="Chakramantra 3D Core"
                       fill
+                      sizes="(max-width: 640px) 288px, 384px"
                       className="object-cover group-hover:scale-105 transition-transform duration-700"
                       priority
                     />
