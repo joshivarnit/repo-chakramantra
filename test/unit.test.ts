@@ -71,3 +71,48 @@ test('detectOpening identifies standard chess openings', () => {
 
   assert.equal(detectOpening([]), null);
 });
+
+test('getOpeningPositionData traverses Master Opening Tree with grandmaster stats', async () => {
+  const { getOpeningPositionData } = await import('../src/components/chess/opening-explorer');
+  
+  // Starting position test
+  const startPos = getOpeningPositionData([]);
+  assert.equal(startPos.eco, 'A00');
+  assert.ok(startPos.continuations.length >= 4);
+  const e4Move = startPos.continuations.find(c => c.san === 'e4');
+  assert.ok(e4Move);
+  assert.ok(e4Move.games > 100000);
+  assert.ok(e4Move.whiteWinPct > 30);
+
+  // Sicilian Defense test
+  const sicilian = getOpeningPositionData(['e4', 'c5']);
+  assert.equal(sicilian.eco, 'B20');
+  assert.equal(sicilian.name, 'Sicilian Defense');
+  const nf3 = sicilian.continuations.find(c => c.san === 'Nf3');
+  assert.ok(nf3);
+  assert.ok(nf3.games > 50000);
+
+  // Ruy Lopez test
+  const ruyLopez = getOpeningPositionData(['e4', 'e5', 'Nf3', 'Nc6', 'Bb5']);
+  assert.equal(ruyLopez.eco, 'C60');
+  assert.ok(ruyLopez.name.includes('Ruy Lopez'));
+  const a6 = ruyLopez.continuations.find(c => c.san === 'a6');
+  assert.ok(a6);
+  assert.ok(a6.name?.includes('Morphy Defense'));
+});
+
+test('eval mate formatting formats forced mates correctly', () => {
+  const formatMate = (isMate: boolean, mateIn: number, evalCp: number) => {
+    return isMate
+      ? (mateIn > 0 ? `M${Math.abs(mateIn)}` : `-M${Math.abs(mateIn)}`)
+      : ((evalCp >= 0 ? '+' : '') + (evalCp / 100).toFixed(2));
+  };
+
+  assert.equal(formatMate(true, 3, 10000), 'M3');
+  assert.equal(formatMate(true, -2, -10000), '-M2');
+  assert.equal(formatMate(true, 1, 10000), 'M1');
+  assert.equal(formatMate(false, 0, 154), '+1.54');
+  assert.equal(formatMate(false, 0, -85), '-0.85');
+  assert.equal(formatMate(false, 0, 0), '+0.00');
+});
+

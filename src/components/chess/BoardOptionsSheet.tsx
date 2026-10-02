@@ -21,6 +21,8 @@ interface BoardOptionsSheetProps {
   onSavePgn: () => void;
   onAnalyzePgn: () => void;
   onPlayFromHere: () => void;
+  onResign?: () => void;
+  onOfferDraw?: () => void;
 }
 
 export default function BoardOptionsSheet({
@@ -32,6 +34,8 @@ export default function BoardOptionsSheet({
   onSavePgn,
   onAnalyzePgn,
   onPlayFromHere,
+  onResign,
+  onOfferDraw,
 }: BoardOptionsSheetProps) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -71,6 +75,33 @@ export default function BoardOptionsSheet({
             <RotateCcw size={18} className="sheet-item-icon" />
             <span className="sheet-item-text">RESET BOARD</span>
           </button>
+
+          {onResign && (
+            <button
+              className="sheet-menu-item"
+              onClick={() => {
+                onClose();
+                onResign();
+              }}
+            >
+              <RotateCcw size={18} style={{ display: 'none' }} />
+              <span className="sheet-item-icon" style={{ color: '#f43f5e', fontSize: 16 }}>🏳</span>
+              <span className="sheet-item-text" style={{ color: '#fda4af' }}>RESIGN GAME</span>
+            </button>
+          )}
+
+          {onOfferDraw && (
+            <button
+              className="sheet-menu-item"
+              onClick={() => {
+                onClose();
+                onOfferDraw();
+              }}
+            >
+              <span className="sheet-item-icon" style={{ color: '#38bdf8', fontSize: 16 }}>🤝</span>
+              <span className="sheet-item-text" style={{ color: '#7dd3fc' }}>OFFER / CLAIM DRAW</span>
+            </button>
+          )}
 
           <button
             className="sheet-menu-item"

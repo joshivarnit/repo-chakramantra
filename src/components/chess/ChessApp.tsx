@@ -27,6 +27,8 @@ import {
   Target,
   Settings as SettingsIcon,
   Info,
+  Flag,
+  Handshake,
 } from 'lucide-react';
 
 import { useStockfish } from './useStockfish';
@@ -50,6 +52,9 @@ import {
   playCheckSound,
   playBlunderSound,
   playGameOverSound,
+  playWarningSound,
+  playResignSound,
+  playDrawSound,
 } from './sound';
 
 import DrawerSidebar, { type ActiveView } from './DrawerSidebar';
@@ -61,6 +66,8 @@ import SettingsPanel, { type ChakraSettings } from './SettingsPanel';
 import GamesArchiveModal from './GamesArchiveModal';
 import AboutModal from './AboutModal';
 import GameReport from './GameReport';
+import ConfirmActionModal, { type GameConfirmAction } from './ConfirmActionModal';
+import OpeningExplorerPanel from './OpeningExplorerPanel';
 import ArrowNumberBadges, { type ArrowBadge } from './ArrowNumberBadges';
 import { detectOpening, type Opening } from './openings';
 import MoveHistory from './MoveHistory';
@@ -130,6 +137,7 @@ export default function ChessApp() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [speechBubble, setSpeechBubble] = useState<string | null>(null);
   const [hintActive, setHintActive] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<GameConfirmAction | null>(null);
 
 
 
@@ -493,8 +501,8 @@ export default function ChessApp() {
     }, 100);
   };
 
-  // Reset board to starting position cleanly
-  const handleResetBoard = useCallback(() => {
+  // Execute clean board reset
+  const executeResetBoard = useCallback(() => {
     if (botMoveTimeoutRef.current) {
       clearTimeout(botMoveTimeoutRef.current);
       botMoveTimeoutRef.current = null;
@@ -507,6 +515,66 @@ export default function ChessApp() {
     newGame(mode, playerColor, settings.engineDepth);
     showToast('Board reset to starting position');
   }, [mode, playerColor, settings.engineDepth, newGame, stockfish, showToast]);
+
+  // Safe reset triggering confirmation if moves exist
+  const handleResetBoard = useCallback(() => {
+    if (moveHistory.length > 0) {
+      setConfirmAction('reset');
+    } else {
+      executeResetBoard();
+    }
+  }, [moveHistory.length, executeResetBoard]);
+
+  // Resignation flow with audio and confirmation
+  const handleResign = useCallback(() => {
+    setConfirmAction('resign');
+  }, []);
+
+  const handleConfirmResign = useCallback(() => {
+    playResignSound();
+    const opponent = playerColor === 'w' ? 'Black' : 'White';
+    showToast(`You resigned. ${opponent} wins!`);
+    stockfish.stop();
+  }, [playerColor, showToast, stockfish]);
+
+  // Draw offer / claim flow
+  const handleOfferDraw = useCallback(() => {
+    setConfirmAction('draw');
+  }, []);
+
+  const handleConfirmDraw = useCallback(() => {
+    if (mode === 'analysis') {
+      playDrawSound();
+      showToast('Game drawn by mutual agreement (1/2 - 1/2).');
+      return;
+    }
+    // In play mode against CPU, evaluate balance
+    const evalScore = Math.abs(stockfish.evaluation);
+    if (stockfish.isMate || evalScore > 150) {
+      playWarningSound();
+      showToast(`CPU declines your draw offer! Position is not balanced.`);
+    } else {
+      playDrawSound();
+      showToast('CPU accepts draw offer! Balanced game (1/2 - 1/2).');
+      stockfish.stop();
+    }
+  }, [mode, stockfish.evaluation, stockfish.isMate, showToast, stockfish]);
+
+  // Play opening continuation book move
+  const handlePlayContinuationMove = useCallback((san: string) => {
+    makeMove(san);
+    showToast(`Book move: ${san}`);
+  }, [makeMove, showToast]);
+
+  // Fast / Normal / Deep engine depth switch
+  const handleQuickDepthChange = useCallback((depth: number) => {
+    setSettings((prev) => ({ ...prev, engineDepth: depth }));
+    if (!enginePaused) {
+      stockfish.analyze(game.fen(), depth);
+    }
+    const label = depth <= 10 ? 'Fast' : depth <= 16 ? 'Normal' : 'Deep';
+    showToast(`Engine calculation depth set to ${depth} (${label})`);
+  }, [enginePaused, stockfish, game, showToast]);
 
   // Trigger hint
   const handleToggleHint = () => {
@@ -709,8 +777,31 @@ export default function ChessApp() {
     }
   }, [settings.figurineNotation]);
 
-  const evalFormatted = (stockfish.evaluation >= 0 ? '+' : '') + (stockfish.evaluation / 100).toFixed(2);
-  const evalPercent = Math.min(100, Math.max(0, 50 + (stockfish.evaluation / 100) * 8));
+  const isMate = stockfish.isMate;
+  const mateIn = stockfish.mateIn;
+  const evalFormatted = isMate
+    ? (mateIn > 0 ? `M${Math.abs(mateIn)}` : `-M${Math.abs(mateIn)}`)
+    : ((stockfish.evaluation >= 0 ? '+' : '') + (stockfish.evaluation / 100).toFixed(2));
+
+  let evalPercent: number;
+  if (isMate) {
+    evalPercent = mateIn > 0 ? 100 : 0;
+  } else {
+    evalPercent = Math.min(96, Math.max(4, 50 + (stockfish.evaluation / 100) * 8.5));
+  }
+
+  let evalTrackClass = "eval-progress-track";
+  if (isMate) {
+    evalTrackClass += mateIn > 0 ? " eval-mate-white" : " eval-mate-black";
+  } else if (stockfish.evaluation > 200) {
+    evalTrackClass += " eval-advantage-white";
+  } else if (stockfish.evaluation < -200) {
+    evalTrackClass += " eval-advantage-black";
+  }
+
+  const evalScoreClass = isMate
+    ? (mateIn > 0 ? 'eval-score-bold score-mate-white' : 'eval-score-bold score-mate-black')
+    : 'eval-score-bold';
 
   // Handle drawer button click (mobile opens drawer, desktop toggles sidebar)
   const handleMenuButtonClick = () => {
@@ -887,7 +978,7 @@ export default function ChessApp() {
 
             {/* Integrated Horizontal Eval Bar (Matches Video 00:00, 00:18, 00:43) */}
             <div className="integrated-horizontal-eval-bar">
-              <div className="eval-progress-track" style={{ width: `${evalPercent}%` }} />
+              <div className={evalTrackClass} style={{ width: `${evalPercent}%` }} />
               <div className="eval-bar-content">
                 <div className="eval-text-pill">
                   {enginePaused ? (
@@ -895,12 +986,40 @@ export default function ChessApp() {
                   ) : (
                     <>
                       <span>{currentOpening ? currentOpening.name : 'Stockfish 16'}</span>
-                      <span className="eval-score-bold">({evalFormatted})</span>
+                      <span className={evalScoreClass}>({evalFormatted})</span>
                     </>
                   )}
                 </div>
 
                 <div className="eval-bar-controls">
+                  {/* Quick Engine Depth Selector (Feature 3) */}
+                  <div className="quick-depth-selector" title="Quick Engine Calculation Depth">
+                    <button
+                      type="button"
+                      className={`depth-pill-btn ${settings.engineDepth <= 10 ? 'active' : ''}`}
+                      onClick={() => handleQuickDepthChange(10)}
+                      title="Fast (Depth 10) - Instant speed"
+                    >
+                      Fast
+                    </button>
+                    <button
+                      type="button"
+                      className={`depth-pill-btn ${settings.engineDepth > 10 && settings.engineDepth <= 16 ? 'active' : ''}`}
+                      onClick={() => handleQuickDepthChange(16)}
+                      title="Normal (Depth 16) - Balanced play"
+                    >
+                      Norm
+                    </button>
+                    <button
+                      type="button"
+                      className={`depth-pill-btn ${settings.engineDepth > 16 ? 'active' : ''}`}
+                      onClick={() => handleQuickDepthChange(22)}
+                      title="Deep (Depth 22) - Tactical calculation"
+                    >
+                      Deep
+                    </button>
+                  </div>
+
                   <button
                     className="eval-control-btn"
                     onClick={() => handleSetLineCount(engineLineCount - 1)}
@@ -966,6 +1085,16 @@ export default function ChessApp() {
               <button className="dock-btn" onClick={flipBoard} title="Flip Board">
                 <Repeat size={20} />
               </button>
+              {mode === 'play' && (
+                <>
+                  <button className="dock-btn dock-btn-resign" onClick={handleResign} title="Resign Game">
+                    <Flag size={18} />
+                  </button>
+                  <button className="dock-btn dock-btn-draw" onClick={handleOfferDraw} title="Offer / Claim Draw">
+                    <Handshake size={18} />
+                  </button>
+                </>
+              )}
               <button
                 className={`dock-btn ${hintActive ? 'active-hint' : ''}`}
                 onClick={handleToggleHint}
@@ -1074,32 +1203,12 @@ export default function ChessApp() {
 
             {desktopRightTab === 'openings' && (
               <div className="desktop-openings-inline">
-                {currentOpening && (
-                  <div className="opening-item" style={{ background: 'rgba(59, 130, 246, 0.1)', marginBottom: 12 }}>
-                    <div className="opening-item-left">
-                      <span className="opening-pawn-icon">♟</span>
-                      <div className="opening-info">
-                        <div className="opening-name-row">
-                          <span className="opening-eco">{currentOpening.eco}:</span>
-                          <span className="opening-name">{currentOpening.name}</span>
-                        </div>
-                        <div className="opening-moves-row">
-                          <span className="opening-moves">{currentOpening.movesStr}</span>
-                          <span className="opening-stats-badge">
-                            [W: {currentOpening.whiteWinPct}%, B: {currentOpening.blackWinPct}%]
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <button
-                  className="play-start-btn"
-                  onClick={() => setShowOpenings(true)}
-                  style={{ width: '100%' }}
-                >
-                  Browse Full Opening Directory
-                </button>
+                <OpeningExplorerPanel
+                  moves={moveHistory.map((m) => m.move.san)}
+                  figurineNotation={settings.figurineNotation}
+                  onPlayMove={handlePlayContinuationMove}
+                  onOpenFullLibrary={() => setShowOpenings(true)}
+                />
               </div>
             )}
           </div>
@@ -1130,12 +1239,19 @@ export default function ChessApp() {
         isOpen={showOpenings}
         onClose={() => setShowOpenings(false)}
         onSelectOpening={handleSelectOpening}
+        currentMoves={moveHistory.map((m) => m.move.san)}
+        onPlayMove={(san) => {
+          handlePlayContinuationMove(san);
+          setShowOpenings(false);
+        }}
       />
 
       <BoardOptionsSheet
         isOpen={showBoardOptions}
         onClose={() => setShowBoardOptions(false)}
-        onResetBoard={() => newGame('analysis', 'w', settings.engineDepth)}
+        onResetBoard={handleResetBoard}
+        onResign={mode === 'play' ? handleResign : undefined}
+        onOfferDraw={mode === 'play' ? handleOfferDraw : undefined}
         onSharePgn={() => {
           if (navigator.clipboard) navigator.clipboard.writeText(getPGN());
         }}
@@ -1194,6 +1310,23 @@ export default function ChessApp() {
         onClose={() => setShowReport(false)}
         report={gameReport}
         playerColor={playerColor}
+        pgn={getPGN()}
+      />
+
+      <ConfirmActionModal
+        isOpen={confirmAction !== null}
+        action={confirmAction}
+        moveCount={moveHistory.length}
+        onConfirm={() => {
+          if (confirmAction === 'reset') {
+            executeResetBoard();
+          } else if (confirmAction === 'resign') {
+            handleConfirmResign();
+          } else if (confirmAction === 'draw') {
+            handleConfirmDraw();
+          }
+        }}
+        onClose={() => setConfirmAction(null)}
       />
     </div>
   );

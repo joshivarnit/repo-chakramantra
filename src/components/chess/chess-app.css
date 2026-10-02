@@ -1954,3 +1954,548 @@
   0% { transform: translate(-50%, 8px) scale(0.9); opacity: 0; }
   100% { transform: translate(-50%, 0) scale(1); opacity: 1; }
 }
+
+/* ==========================================================================
+   FEATURE 5: Dynamic Eval Bar Gradients & Mate Victory Pulse Animations
+   ========================================================================== */
+.eval-progress-track.eval-mate-white {
+  background: linear-gradient(90deg, #10b981 0%, #34d399 45%, #facc15 100%) !important;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.7);
+  animation: victoryPulseWhite 1.4s ease-in-out infinite alternate;
+}
+
+.eval-progress-track.eval-mate-black {
+  background: linear-gradient(90deg, #b91c1c 0%, #dc2626 50%, #7f1d1d 100%) !important;
+  box-shadow: 0 0 16px rgba(220, 38, 38, 0.7);
+  animation: victoryPulseBlack 1.4s ease-in-out infinite alternate;
+}
+
+.eval-progress-track.eval-advantage-white {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.5) 0%, rgba(59, 130, 246, 0.8) 100%) !important;
+}
+
+.eval-progress-track.eval-advantage-black {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.55) 0%, rgba(245, 158, 11, 0.75) 100%) !important;
+}
+
+.score-mate-white {
+  color: #facc15 !important;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+  animation: scoreBounce 1.4s ease-in-out infinite alternate;
+}
+
+.score-mate-black {
+  color: #ef4444 !important;
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  animation: scoreBounce 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes victoryPulseWhite {
+  0% { filter: brightness(1) drop-shadow(0 0 4px rgba(250, 204, 21, 0.4)); }
+  100% { filter: brightness(1.3) drop-shadow(0 0 14px rgba(52, 211, 153, 0.9)); }
+}
+
+@keyframes victoryPulseBlack {
+  0% { filter: brightness(1) drop-shadow(0 0 4px rgba(220, 38, 38, 0.4)); }
+  100% { filter: brightness(1.25) drop-shadow(0 0 14px rgba(185, 28, 28, 0.9)); }
+}
+
+@keyframes scoreBounce {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+/* ==========================================================================
+   FEATURE 3: Quick Engine Depth Selector beside MultiPV Counter
+   ========================================================================== */
+.quick-depth-selector {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 1px;
+  gap: 1px;
+  margin-left: 4px;
+}
+
+.depth-pill-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.depth-pill-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.depth-pill-btn.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(249, 115, 22, 0.4);
+}
+
+/* ==========================================================================
+   FEATURE 1: Confirm Action Dialog (Reset, Resign, Draw)
+   ========================================================================== */
+.confirm-dialog-box {
+  max-width: 420px !important;
+  width: 90% !important;
+  background: rgba(22, 12, 7, 0.98) !important;
+  border: 1px solid rgba(249, 115, 22, 0.3) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(249, 115, 22, 0.15) !important;
+  border-radius: 14px !important;
+  overflow: hidden;
+  animation: confirmSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes confirmSlideIn {
+  0% { transform: scale(0.92) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.confirm-dialog-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0 20px;
+}
+
+.confirm-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.confirm-icon-amber { color: #f59e0b; }
+.confirm-icon-rose { color: #f43f5e; }
+.confirm-icon-blue { color: #38bdf8; }
+
+.confirm-dialog-body {
+  padding: 16px 20px;
+}
+
+.confirm-dialog-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+}
+
+.confirm-dialog-subtitle {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.confirm-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px 18px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.confirm-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.confirm-btn-action {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 7px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.confirm-btn-danger {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.4);
+}
+
+.confirm-btn-danger:hover {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  transform: translateY(-1px);
+}
+
+.confirm-btn-rose {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(225, 29, 72, 0.4);
+}
+
+.confirm-btn-rose:hover {
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  transform: translateY(-1px);
+}
+
+.confirm-btn-blue {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+}
+
+.confirm-btn-blue:hover {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  transform: translateY(-1px);
+}
+
+/* Resign / Draw quick action buttons in dock */
+.dock-btn-resign {
+  color: #fda4af;
+}
+
+.dock-btn-resign:hover {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.15);
+}
+
+.dock-btn-draw {
+  color: #7dd3fc;
+}
+
+.dock-btn-draw:hover {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+}
+
+/* ==========================================================================
+   FEATURE 2: Game Report PGN Export & Sharing Action Hub
+   ========================================================================== */
+.report-export-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.report-export-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.report-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.report-export-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(249, 115, 22, 0.4);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.report-export-btn.copied-active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.report-export-link {
+  color: #60a5fa;
+}
+
+.report-export-link:hover {
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.report-toggle-pgn-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 10px;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+
+.report-toggle-pgn-btn:hover {
+  color: #f8fafc;
+  text-decoration: underline;
+}
+
+.report-pgn-preview-box {
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #cbd5e1;
+  max-height: 110px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ==========================================================================
+   FEATURE 4: Opening Explorer Panel & Continuations
+   ========================================================================== */
+.opening-explorer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.explorer-header-card {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(20, 10, 5, 0.7) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.explorer-eco-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.explorer-eco-badge {
+  background: #f97316;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.explorer-book-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.explorer-opening-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+}
+
+.explorer-opening-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.explorer-continuations-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.explorer-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.explorer-title-icon {
+  color: #f97316;
+}
+
+.explorer-moves-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.explorer-move-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.explorer-move-row:hover {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.4);
+  transform: translateX(2px);
+}
+
+.explorer-move-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.explorer-move-san {
+  font-size: 13px;
+  font-weight: 800;
+  color: #f8fafc;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.explorer-move-name {
+  font-size: 12px;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.explorer-move-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.explorer-games-count {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+/* Distribution bar */
+.explorer-pct-bar {
+  display: flex;
+  width: 55px;
+  height: 8px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.pct-white {
+  background: #f1f5f9;
+}
+
+.pct-draw {
+  background: #64748b;
+}
+
+.pct-black {
+  background: #1e293b;
+}
+
+.explorer-arrow {
+  color: #64748b;
+}
+
+.explorer-move-row:hover .explorer-arrow {
+  color: #f97316;
+}
+
+.explorer-empty-book {
+  text-align: center;
+  padding: 24px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.explorer-empty-book .empty-icon {
+  color: #f97316;
+  margin-bottom: 6px;
+}
+
+.explorer-empty-book .empty-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 4px 0;
+}
+
+.explorer-empty-book .empty-subtext {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.explorer-library-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.explorer-library-btn:hover {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.4);
+  color: #fff;
+}
+

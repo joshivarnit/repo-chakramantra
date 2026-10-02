@@ -13,6 +13,8 @@ interface TopMovesPanelProps {
   figurineNotation: boolean;
   onSelectMove: (uci: string) => void;
   onMultiPVChange: (count: number) => void;
+  depth?: number;
+  onDepthChange?: (depth: number) => void;
 }
 
 export default function TopMovesPanel({
@@ -23,6 +25,8 @@ export default function TopMovesPanel({
   figurineNotation,
   onSelectMove,
   onMultiPVChange,
+  depth,
+  onDepthChange,
 }: TopMovesPanelProps) {
   // Convert UCI move to SAN using a temporary chess instance
   const uciToSan = (uci: string, boardFen: string): string => {
@@ -88,7 +92,32 @@ export default function TopMovesPanel({
           <span>Top Engine Moves</span>
           <span className="top-moves-count">{lines.length} lines</span>
         </div>
-        <div className="top-moves-selector">
+        <div className="top-moves-selector" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {onDepthChange && (
+            <div className="quick-depth-selector" title="Engine Depth">
+              <button
+                className={`depth-pill-btn ${(depth ?? 16) <= 10 ? 'active' : ''}`}
+                onClick={() => onDepthChange(10)}
+                title="Fast (Depth 10)"
+              >
+                Fast
+              </button>
+              <button
+                className={`depth-pill-btn ${(depth ?? 16) > 10 && (depth ?? 16) <= 16 ? 'active' : ''}`}
+                onClick={() => onDepthChange(16)}
+                title="Normal (Depth 16)"
+              >
+                Norm
+              </button>
+              <button
+                className={`depth-pill-btn ${(depth ?? 16) > 16 ? 'active' : ''}`}
+                onClick={() => onDepthChange(22)}
+                title="Deep (Depth 22)"
+              >
+                Deep
+              </button>
+            </div>
+          )}
           <label className="top-moves-label">Lines:</label>
           <select
             className="top-moves-select"

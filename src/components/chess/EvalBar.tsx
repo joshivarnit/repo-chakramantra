@@ -31,15 +31,28 @@ export default function EvalBar({ evaluation, isMate, mateIn, orientation }: Eva
 
   const isWhiteAdvantage = isMate ? mateIn > 0 : evaluation > 0;
 
+  let fillClass = "eval-bar-fill";
+  if (isMate) {
+    fillClass += mateIn > 0 ? " eval-mate-white" : " eval-mate-black";
+  } else if (evaluation > 200) {
+    fillClass += " eval-advantage-white";
+  } else if (evaluation < -200) {
+    fillClass += " eval-advantage-black";
+  }
+
+  const scoreClass = isMate
+    ? (mateIn > 0 ? 'score-mate-white' : 'score-mate-black')
+    : (isWhiteAdvantage ? 'eval-white' : 'eval-black');
+
   return (
     <div className="eval-bar-container" title={`Eval: ${displayEval}`}>
       <div className="eval-bar-track">
         <div
-          className="eval-bar-fill"
+          className={fillClass}
           style={{ height: `${percent}%` }}
         />
       </div>
-      <div className={`eval-bar-label ${isWhiteAdvantage ? 'eval-white' : 'eval-black'}`}>
+      <div className={`eval-bar-label ${scoreClass}`}>
         {displayEval}
       </div>
     </div>

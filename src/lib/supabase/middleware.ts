@@ -46,6 +46,16 @@ export async function updateSession(request: NextRequest) {
   const isEditorLogin = request.nextUrl.pathname === EDITOR_LOGIN
 
   if (isEditorRoute && !isEditorLogin) {
+    // In local development, allow direct editorial review when requested
+    if (
+      process.env.NODE_ENV === 'development' &&
+      (process.env.EDITOR_BYPASS_AUTH === 'true' ||
+        request.nextUrl.searchParams.get('dev') === 'true' ||
+        request.cookies.get('dev_editor_bypass')?.value === 'true')
+    ) {
+      return supabaseResponse;
+    }
+
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = EDITOR_LOGIN

@@ -3,18 +3,26 @@
 import React, { useState, useMemo } from 'react';
 import { Search, X, ChevronRight } from 'lucide-react';
 import { OPENINGS_DATABASE, type Opening } from './openings';
+import OpeningExplorerPanel from './OpeningExplorerPanel';
 
 interface OpeningsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectOpening: (opening: Opening) => void;
+  currentMoves?: string[];
+  onPlayMove?: (san: string) => void;
 }
 
 export default function OpeningsModal({
   isOpen,
   onClose,
   onSelectOpening,
+  currentMoves,
+  onPlayMove,
 }: OpeningsModalProps) {
+  const [activeTab, setActiveTab] = useState<'library' | 'explorer'>(
+    currentMoves && currentMoves.length > 0 ? 'explorer' : 'library'
+  );
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredOpenings = useMemo(() => {
@@ -37,7 +45,7 @@ export default function OpeningsModal({
         <div className="openings-header">
           <div className="openings-title-group">
             <span className="openings-header-icon">♟</span>
-            <h2 className="openings-title">Openings</h2>
+            <h2 className="openings-title">Openings Explorer</h2>
             <span className="openings-count-badge">{filteredOpenings.length}</span>
           </div>
 
@@ -48,23 +56,54 @@ export default function OpeningsModal({
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="openings-search-bar">
-          <Search size={16} className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search ECO code, opening name, or moves..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-          />
-          {searchQuery && (
-            <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
-              ✕
+        {/* Tab Switcher if in-game moves exist */}
+        {currentMoves && currentMoves.length > 0 && onPlayMove && (
+          <div className="widescreen-tabs-header" style={{ padding: '0 16px 10px', background: 'transparent' }}>
+            <button
+              className={`widescreen-tab-btn ${activeTab === 'explorer' ? 'active' : ''}`}
+              onClick={() => setActiveTab('explorer')}
+            >
+              🧭 Master Continuations ({currentMoves.length} moves)
             </button>
-          )}
-        </div>
+            <button
+              className={`widescreen-tab-btn ${activeTab === 'library' ? 'active' : ''}`}
+              onClick={() => setActiveTab('library')}
+            >
+              📚 All Openings Catalog ({filteredOpenings.length})
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'explorer' && currentMoves && onPlayMove ? (
+          <div style={{ padding: '12px 16px 16px', overflowY: 'auto', maxHeight: '520px' }}>
+            <OpeningExplorerPanel
+              moves={currentMoves}
+              onPlayMove={(san) => {
+                onPlayMove(san);
+                onClose();
+              }}
+              onOpenFullLibrary={() => setActiveTab('library')}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Search Bar */}
+            <div className="openings-search-bar">
+              <Search size={16} className="search-icon" />
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search ECO code, opening name, or moves..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
+              />
+              {searchQuery && (
+                <button className="clear-search-btn" onClick={() => setSearchQuery('')}>
+                  ✕
+                </button>
+              )}
+            </div>
 
         {/* List of Openings */}
         <div className="openings-list-scroll">
@@ -105,6 +144,8 @@ export default function OpeningsModal({
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
