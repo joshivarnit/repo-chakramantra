@@ -11,6 +11,7 @@ import {
   Settings,
   Info,
   X,
+  ExternalLink,
 } from 'lucide-react';
 
 export type ActiveView = 
@@ -65,8 +66,7 @@ export default function DrawerSidebar({
               <span className="drawer-avatar-icon">♟</span>
             </div>
             <div className="drawer-title-group">
-              <h2 className="drawer-title">ChakraChess Pro</h2>
-              <span className="drawer-subtitle">Grandmaster Edition</span>
+              <h2 className="drawer-title">ChakraChess</h2>
             </div>
           </div>
           <button className="drawer-close-btn" onClick={onClose} aria-label="Close menu">
@@ -93,6 +93,17 @@ export default function DrawerSidebar({
               </button>
             );
           })}
+
+          <div className="drawer-nav-divider" style={{ height: 1, margin: '8px 12px', background: 'rgba(255,255,255,0.08)' }} />
+
+          <a
+            href="/"
+            className="drawer-item drawer-mantra-item"
+            title="Go to ChakraMantra Home"
+          >
+            <span className="drawer-item-icon"><ExternalLink size={20} /></span>
+            <span className="drawer-item-label">Go to ChakraMantra</span>
+          </a>
         </nav>
 
         {/* Footer info */}

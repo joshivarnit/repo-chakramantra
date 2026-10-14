@@ -29,6 +29,7 @@ import {
   Info,
   Flag,
   Handshake,
+  ExternalLink,
 } from 'lucide-react';
 
 import { useStockfish } from './useStockfish';
@@ -273,6 +274,13 @@ export default function ChessApp() {
       stockfish.analyze(fen, settings.engineDepth);
     }
   }, [game.fen(), mode, playerColor, settings.engineDepth, currentMoveIndex, moveHistory.length, isGameOver, enginePaused]);
+
+  // Reset candidate line selection when board position changes
+  useEffect(() => {
+    setSelectedCandidateUci(null);
+    setSelectedSquare(null);
+    setPossibleMoves([]);
+  }, [game.fen()]);
 
   // Move eval classification
   useEffect(() => {
@@ -827,9 +835,12 @@ export default function ChessApp() {
           >
             <Menu size={22} />
           </button>
-          <Link href="/" className="chess-brand-link">
+          <Link href="/chess" className="chess-brand-link" title="ChakraChess">
             <span>ChakraChess</span>
-            <span className="chess-pro-badge">PRO</span>
+          </Link>
+          <Link href="/" className="chess-mantra-nav-btn" title="Go to ChakraMantra">
+            <ExternalLink size={13} />
+            <span>ChakraMantra</span>
           </Link>
         </div>
 
@@ -893,8 +904,7 @@ export default function ChessApp() {
                 <span className="drawer-avatar-icon">♟</span>
               </div>
               <div className="drawer-title-group">
-                <h2 className="drawer-title">ChakraChess Pro</h2>
-                <span className="drawer-subtitle">Grandmaster Edition</span>
+                <h2 className="drawer-title">ChakraChess</h2>
               </div>
             </div>
           </div>
@@ -919,6 +929,15 @@ export default function ChessApp() {
                 {activeView === item.id && <span className="drawer-item-indicator" />}
               </button>
             ))}
+            <div style={{ height: 1, margin: '8px 12px', background: 'rgba(255,255,255,0.08)' }} />
+            <a
+              href="/"
+              className="drawer-item drawer-mantra-item"
+              title="Go to ChakraMantra Home"
+            >
+              <span className="drawer-item-icon"><ExternalLink size={18} /></span>
+              <span className="drawer-item-label">ChakraMantra</span>
+            </a>
           </nav>
         </aside>
 
@@ -946,7 +965,7 @@ export default function ChessApp() {
             <div className="chess-board-wrapper">
               <Chessboard
                 options={{
-                  id: "chakrachess-pro-board",
+                  id: "chakrachess-board",
                   position: game.fen(),
                   onPieceDrop,
                   onSquareClick,
@@ -1059,14 +1078,21 @@ export default function ChessApp() {
                 const moveSan = uciToSan(line.moveUci, game.fen());
                 const preview = getLinePreview(line.pvLine, game.fen());
                 const isSelected = selectedCandidateUci === line.moveUci;
-                const scoreText = line.isMate ? (line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`) : ((line.score >= 0 ? '+' : '') + (line.score / 100).toFixed(2));
+                const scoreVal = line.scoreFromWhite !== undefined ? line.scoreFromWhite : line.score;
+                const isMateLine = line.isMate;
+                const mateScore = isMateLine ? (game.turn() === 'w' ? line.mateIn : -line.mateIn) : 0;
+                const scoreText = isMateLine
+                  ? (mateScore > 0 ? `M${mateScore}` : `-M${Math.abs(mateScore)}`)
+                  : ((scoreVal >= 0 ? '+' : '') + (scoreVal / 100).toFixed(2));
+                const isPositive = isMateLine ? mateScore > 0 : scoreVal > 0;
+                const isNegative = isMateLine ? mateScore < 0 : scoreVal < 0;
                 return (
                   <div
                     key={idx}
                     className={`variation-line-card ${isSelected ? 'active-line' : ''}`}
                     onClick={() => setSelectedCandidateUci(isSelected ? null : line.moveUci)}
                   >
-                    <span className={`line-eval-badge ${line.score > 0 ? 'positive' : line.score < 0 ? 'negative' : ''}`}>
+                    <span className={`line-eval-badge ${isPositive ? 'positive' : isNegative ? 'negative' : ''}`}>
                       {scoreText} (depth: {line.depth})
                     </span>
                     <span className="line-moves-sequence">
@@ -1170,7 +1196,14 @@ export default function ChessApp() {
                     const moveSan = uciToSan(line.moveUci, game.fen());
                     const preview = getLinePreview(line.pvLine, game.fen());
                     const isSelected = selectedCandidateUci === line.moveUci;
-                    const scoreText = line.isMate ? (line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`) : ((line.score >= 0 ? '+' : '') + (line.score / 100).toFixed(2));
+                    const scoreVal = line.scoreFromWhite !== undefined ? line.scoreFromWhite : line.score;
+                    const isMateLine = line.isMate;
+                    const mateScore = isMateLine ? (game.turn() === 'w' ? line.mateIn : -line.mateIn) : 0;
+                    const scoreText = isMateLine
+                      ? (mateScore > 0 ? `M${mateScore}` : `-M${Math.abs(mateScore)}`)
+                      : ((scoreVal >= 0 ? '+' : '') + (scoreVal / 100).toFixed(2));
+                    const isPositive = isMateLine ? mateScore > 0 : scoreVal > 0;
+                    const isNegative = isMateLine ? mateScore < 0 : scoreVal < 0;
                     return (
                       <div
                         key={idx}
@@ -1178,7 +1211,7 @@ export default function ChessApp() {
                         onClick={() => setSelectedCandidateUci(isSelected ? null : line.moveUci)}
                         style={{ marginBottom: 8 }}
                       >
-                        <span className={`line-eval-badge ${line.score > 0 ? 'positive' : line.score < 0 ? 'negative' : ''}`}>
+                        <span className={`line-eval-badge ${isPositive ? 'positive' : isNegative ? 'negative' : ''}`}>
                           {scoreText}
                         </span>
                         <span className="line-moves-sequence">

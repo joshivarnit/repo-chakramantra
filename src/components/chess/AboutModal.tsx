@@ -20,7 +20,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <span className="about-avatar-icon">♟</span>
             </div>
             <div>
-              <h2 className="about-title">ChakraChess Pro</h2>
+              <h2 className="about-title">ChakraChess</h2>
               <span className="about-subtitle">AI Analysis & Training Suite</span>
             </div>
           </div>

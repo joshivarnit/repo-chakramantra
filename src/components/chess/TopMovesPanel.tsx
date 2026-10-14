@@ -71,10 +71,11 @@ export default function TopMovesPanel({
   };
 
   const formatScore = (line: MultiPVLine) => {
+    const scoreVal = line.scoreFromWhite !== undefined ? line.scoreFromWhite : line.score;
     if (line.isMate) {
       return line.mateIn > 0 ? `M${line.mateIn}` : `-M${Math.abs(line.mateIn)}`;
     }
-    const val = line.score / 100;
+    const val = scoreVal / 100;
     return (val > 0 ? '+' : '') + val.toFixed(2);
   };
 
@@ -145,8 +146,9 @@ export default function TopMovesPanel({
           const previewLine = getLineSanPreview(line.pvLine, fen);
           const isSelected = selectedUci === line.moveUci || (selectedUci === null && line.multipv === 1);
           const scoreText = formatScore(line);
-          const isPositive = line.isMate ? line.mateIn > 0 : line.score > 0;
-          const isNegative = line.isMate ? line.mateIn < 0 : line.score < 0;
+          const scoreVal = line.scoreFromWhite !== undefined ? line.scoreFromWhite : line.score;
+          const isPositive = line.isMate ? line.mateIn > 0 : scoreVal > 0;
+          const isNegative = line.isMate ? line.mateIn < 0 : scoreVal < 0;
 
           return (
             <button

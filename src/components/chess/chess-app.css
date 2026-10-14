@@ -1,19 +1,19 @@
 /* ==========================================================================
-   ChakraChess Pro — Ultra-Premium Dark Walnut Wooden Aesthetic (Chessis UI)
+   ChakraChess — Sleek Modern Obsidian & Titanium Aesthetic
    ========================================================================== */
 
 :root {
-  --wood-bg-base: #140a05;
-  --wood-bg-deep: #0a0402;
-  --wood-surface: #22120a;
-  --wood-card: rgba(36, 20, 12, 0.92);
-  --wood-border: rgba(180, 120, 70, 0.2);
+  --wood-bg-base: #090d16;
+  --wood-bg-deep: #05080e;
+  --wood-surface: #0f172a;
+  --wood-card: rgba(15, 23, 42, 0.88);
+  --wood-border: rgba(148, 163, 184, 0.12);
   --wood-accent-blue: #3b82f6;
-  --wood-accent-green: #22c55e;
-  --wood-accent-orange: #f97316;
+  --wood-accent-green: #10b981;
+  --wood-accent-orange: #f59e0b;
   --wood-accent-amber: #eab308;
-  --wood-light-sq: #d4a373;
-  --wood-dark-sq: #8a5a36;
+  --wood-light-sq: #dee3e6;
+  --wood-dark-sq: #8ca2ad;
 }
 
 *, *::before, *::after {
@@ -25,11 +25,10 @@
   height: 100vh;
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: var(--wood-bg-base);
+  background-color: #090d16;
   background-image:
-    radial-gradient(ellipse at 50% 25%, rgba(65, 34, 18, 0.75) 0%, rgba(14, 7, 3, 0.98) 100%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.012) 0px, rgba(255, 255, 255, 0.012) 1px, transparent 1px, transparent 10px),
-    linear-gradient(180deg, rgba(25, 12, 6, 0.5) 0%, rgba(10, 5, 2, 0.9) 100%);
+    radial-gradient(ellipse at 50% 15%, rgba(30, 41, 59, 0.45) 0%, rgba(9, 13, 22, 0.98) 100%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.5) 0%, rgba(9, 13, 22, 0.95) 100%);
   background-attachment: fixed;
   color: #f8fafc;
   font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
@@ -40,14 +39,14 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   TOP HEADER & OPENING BANNER (Matches Video 00:00, 00:03)
+   TOP HEADER & OPENING BANNER
    ───────────────────────────────────────────────────────────────────────────── */
 .chess-top-bar {
   height: 52px;
-  background: rgba(20, 10, 5, 0.92);
+  background: rgba(11, 17, 30, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--wood-border);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -59,7 +58,7 @@
 .chess-top-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .chess-drawer-btn {
@@ -88,20 +87,37 @@
   gap: 6px;
   text-decoration: none;
   color: #f8fafc;
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: -0.2px;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: -0.3px;
+  transition: opacity 0.15s ease;
 }
 
-.chess-pro-badge {
-  font-size: 9px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: #fff;
-  padding: 2px 5px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.chess-brand-link:hover {
+  opacity: 0.9;
+}
+
+.chess-mantra-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  color: #a5b4fc;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  margin-left: 4px;
+}
+
+.chess-mantra-nav-btn:hover {
+  background: rgba(99, 102, 241, 0.24);
+  border-color: #818cf8;
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 /* Opening Pill in Top Bar */
@@ -318,10 +334,10 @@
   height: min(calc(100vh - 230px), 480px, calc(100vw - 32px));
   aspect-ratio: 1 / 1;
   box-shadow:
-    0 12px 36px rgba(0, 0, 0, 0.8),
-    0 0 0 3px rgba(60, 32, 16, 0.9),
-    0 0 0 5px rgba(180, 120, 70, 0.3);
-  border-radius: 8px;
+    0 20px 50px -10px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 24px rgba(59, 130, 246, 0.08);
+  border-radius: 12px;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -363,7 +379,7 @@
 .integrated-horizontal-eval-bar {
   width: 100%;
   height: 28px;
-  background: rgba(18, 9, 4, 0.95);
+  background: rgba(15, 23, 42, 0.95);
   border: 1px solid var(--wood-border);
   border-top: none;
   display: flex;
@@ -535,7 +551,7 @@
   width: 100%;
   max-width: 480px;
   height: 48px;
-  background: rgba(22, 11, 5, 0.94);
+  background: rgba(15, 23, 42, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--wood-border);
@@ -593,7 +609,7 @@
 
 .desktop-persistent-sidebar {
   width: 220px;
-  background: rgba(18, 9, 4, 0.94);
+  background: rgba(11, 17, 30, 0.94);
   border-right: 1px solid var(--wood-border);
   display: flex;
   flex-direction: column;
@@ -629,7 +645,7 @@
 
 .desktop-right-widescreen-hub {
   width: 340px;
-  background: rgba(18, 9, 4, 0.94);
+  background: rgba(11, 17, 30, 0.94);
   border-left: 1px solid var(--wood-border);
   display: flex;
   flex-direction: column;
@@ -735,7 +751,7 @@
   left: 0;
   width: 280px;
   max-width: 82vw;
-  background: #180d07;
+  background: #0f172a;
   border-right: 1px solid var(--wood-border);
   box-shadow: 10px 0 40px rgba(0, 0, 0, 0.85);
   z-index: 110;
@@ -767,14 +783,14 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 2px solid #f97316;
-  box-shadow: 0 0 12px rgba(249, 115, 22, 0.45);
-  background: rgba(30, 15, 8, 0.8);
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+  background: rgba(30, 41, 59, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  color: #fdba74;
+  color: #93c5fd;
 }
 
 .drawer-title {
@@ -836,6 +852,19 @@
   font-weight: 700;
 }
 
+.drawer-mantra-item {
+  color: #a5b4fc !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  margin-top: 4px;
+}
+
+.drawer-mantra-item:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  border-color: #818cf8 !important;
+  color: #ffffff !important;
+}
+
 .drawer-item-indicator {
   position: absolute;
   right: 12px;
@@ -860,7 +889,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: #180d07;
+  background: #0f172a;
   border-top: 1px solid var(--wood-border);
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.9);
@@ -930,7 +959,7 @@
    GAME REPORT DIALOG & STYLES (Fixed unstyled text bug!)
    ───────────────────────────────────────────────────────────────────────────── */
 .chess-dialog {
-  background: #1a0e08;
+  background: #0f172a;
   border: 1px solid var(--wood-border);
   border-radius: 16px;
   width: 100%;
@@ -1169,7 +1198,7 @@
    BOARD EDITOR YELLOW PALETTE & FEN (Video 00:10 - 00:16)
    ───────────────────────────────────────────────────────────────────────────── */
 .editor-modal-container {
-  background: #1a0e08;
+  background: #0f172a;
   border: 1px solid var(--wood-border);
   border-radius: 16px;
   width: 100%;
@@ -1261,7 +1290,7 @@
   grid-template-rows: repeat(8, 1fr);
   width: min(calc(100vw - 44px), 340px);
   height: min(calc(100vw - 44px), 340px);
-  border: 2px solid #5a341b;
+  border: 2px solid #334155;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -1446,7 +1475,7 @@
 .settings-modal-container,
 .about-modal-container,
 .archive-modal-container {
-  background: #180d07;
+  background: #0f172a;
   border: 1px solid var(--wood-border);
   border-radius: 16px;
   width: 100%;
@@ -2049,9 +2078,9 @@
 .confirm-dialog-box {
   max-width: 420px !important;
   width: 90% !important;
-  background: rgba(22, 12, 7, 0.98) !important;
-  border: 1px solid rgba(249, 115, 22, 0.3) !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(249, 115, 22, 0.15) !important;
+  background: rgba(15, 23, 42, 0.98) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(59, 130, 246, 0.15) !important;
   border-radius: 14px !important;
   overflow: hidden;
   animation: confirmSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -2292,8 +2321,8 @@
 }
 
 .explorer-header-card {
-  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(20, 10, 5, 0.7) 100%);
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.28);
   border-radius: 8px;
   padding: 12px 14px;
 }

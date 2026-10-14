@@ -59,6 +59,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const isReadyRef = useRef(false);
   const activeTurnRef = useRef<'w' | 'b'>('w');
   const currentAnalyzingFenRef = useRef<string>('');
+  const lastEmittedFenRef = useRef<string>('');
   const lastDepthRef = useRef<number>(14);
   const multiPvMapRef = useRef<Map<number, MultiPVLine>>(new Map());
   const onBestMoveRef = useRef(options.onBestMove);
@@ -90,11 +91,11 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       throttleTimerRef.current = setTimeout(() => {
         throttleTimerRef.current = null;
         flushUpdate();
-      }, 60);
+      }, 50);
     }
   }, [flushUpdate]);
 
-  // Initialize worker
+  // Initialize worker once and keep alive
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -186,8 +187,9 @@ export function useStockfish(options: UseStockfishOptions = {}) {
         if (nodesMatch) updateData.nodes = parseInt(nodesMatch[1], 10);
         if (npsMatch) updateData.nps = parseInt(npsMatch[1], 10);
 
-        // Immediate flush on the first depth line for a new position so arrows appear in <30ms!
-        if (currentAnalyzingFenRef.current && state.analyzedFen !== currentAnalyzingFenRef.current && sortedLines.length > 0) {
+        // Immediate flush on the first depth line for a new position so arrows appear immediately (<20ms)
+        if (currentAnalyzingFenRef.current && lastEmittedFenRef.current !== currentAnalyzingFenRef.current && sortedLines.length > 0) {
+          lastEmittedFenRef.current = currentAnalyzingFenRef.current;
           if (throttleTimerRef.current) {
             clearTimeout(throttleTimerRef.current);
             throttleTimerRef.current = null;
@@ -221,7 +223,9 @@ export function useStockfish(options: UseStockfishOptions = {}) {
             ponderMove: ponder,
             isSearching: false,
           }));
-          onBestMoveRef.current?.(bestMove, ponder || undefined, currentAnalyzingFenRef.current);
+          if (bestMove && bestMove !== '(none)') {
+            onBestMoveRef.current?.(bestMove, ponder || undefined, currentAnalyzingFenRef.current);
+          }
         }
       }
     };
@@ -234,7 +238,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       worker.terminate();
       workerRef.current = null;
     };
-  }, [scheduleUpdate, flushUpdate, state.analyzedFen]);
+  }, [scheduleUpdate, flushUpdate]);
 
   // Send command
   const sendCommand = useCallback((cmd: string) => {
@@ -284,9 +288,16 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const analyze = useCallback((fen: string, depth: number = 14, activeTurn?: 'w' | 'b') => {
     if (!workerRef.current) return;
     const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
+
+    // If already analyzing this exact position at the same depth, don't restart
+    if (currentAnalyzingFenRef.current === fen && lastDepthRef.current === depth && isReadyRef.current) {
+      return;
+    }
+
     activeTurnRef.current = sideToMove;
     currentAnalyzingFenRef.current = fen;
     lastDepthRef.current = depth;
+    lastEmittedFenRef.current = '';
 
     if (throttleTimerRef.current) {
       clearTimeout(throttleTimerRef.current);
@@ -314,9 +325,15 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const play = useCallback((fen: string, depth: number = 12, activeTurn?: 'w' | 'b') => {
     if (!workerRef.current) return;
     const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
+
+    if (currentAnalyzingFenRef.current === fen && lastDepthRef.current === depth && isReadyRef.current) {
+      return;
+    }
+
     activeTurnRef.current = sideToMove;
     currentAnalyzingFenRef.current = fen;
     lastDepthRef.current = depth;
+    lastEmittedFenRef.current = '';
 
     if (throttleTimerRef.current) {
       clearTimeout(throttleTimerRef.current);
@@ -355,6 +372,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const newGame = useCallback(() => {
     multiPvMapRef.current.clear();
     currentAnalyzingFenRef.current = '';
+    lastEmittedFenRef.current = '';
     sendCommand('stop');
     sendCommand('ucinewgame');
     sendCommand(`setoption name MultiPV value ${multipvRef.current}`);
