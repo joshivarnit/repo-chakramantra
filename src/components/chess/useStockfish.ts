@@ -35,6 +35,14 @@ interface UseStockfishOptions {
   defaultMultiPV?: number;
 }
 
+interface PendingSearchTask {
+  gen: number;
+  fen: string;
+  depth: number;
+  multiPv: number;
+  mode: 'analyze' | 'play';
+}
+
 export function useStockfish(options: UseStockfishOptions = {}) {
   const [multipvCount, setMultipvCount] = useState<number>(options.defaultMultiPV || 3);
   const multipvRef = useRef<number>(options.defaultMultiPV || 3);
@@ -62,6 +70,12 @@ export function useStockfish(options: UseStockfishOptions = {}) {
   const lastEmittedFenRef = useRef<string>('');
   const lastDepthRef = useRef<number>(14);
   const multiPvMapRef = useRef<Map<number, MultiPVLine>>(new Map());
+
+  // Search generation counter & pending search barrier to prevent race conditions
+  const searchGenRef = useRef<number>(0);
+  const activeGenRef = useRef<number>(0);
+  const pendingSearchRef = useRef<PendingSearchTask | null>(null);
+
   const onBestMoveRef = useRef(options.onBestMove);
   useEffect(() => {
     onBestMoveRef.current = options.onBestMove;
@@ -95,6 +109,35 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     }
   }, [flushUpdate]);
 
+  // Execute a pending search task once engine is verified ready
+  const executePendingSearch = useCallback((task: PendingSearchTask) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+
+    activeGenRef.current = task.gen;
+    currentAnalyzingFenRef.current = task.fen;
+    lastDepthRef.current = task.depth;
+    lastEmittedFenRef.current = '';
+
+    const sideToMove = (task.fen.split(' ')[1] as 'w' | 'b') || 'w';
+    activeTurnRef.current = sideToMove;
+
+    multiPvMapRef.current.clear();
+
+    worker.postMessage(`setoption name MultiPV value ${task.multiPv}`);
+    worker.postMessage(`position fen ${task.fen}`);
+    worker.postMessage(`go depth ${task.depth}`);
+
+    setState(prev => ({
+      ...prev,
+      analyzedFen: '', // Reset immediately so previous position arrows vanish
+      isSearching: true,
+      bestMove: '',
+      pvLine: [],
+      multiPvLines: [],
+    }));
+  }, []);
+
   // Initialize worker once and keep alive
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -112,11 +155,23 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       const line = event.data;
       if (typeof line !== 'string') return;
 
-      // Ready signal
+      // Ready signal barrier
       if (line.includes('readyok')) {
         isReadyRef.current = true;
-        worker.postMessage(`setoption name MultiPV value ${multipvRef.current}`);
         setState(prev => ({ ...prev, isReady: true }));
+
+        // If there is a pending queued search, launch it immediately
+        if (pendingSearchRef.current) {
+          const task = pendingSearchRef.current;
+          pendingSearchRef.current = null;
+          executePendingSearch(task);
+        }
+        return;
+      }
+
+      // If we are waiting for engine to finish stopping before starting a new search, ignore old output
+      if (pendingSearchRef.current !== null) {
+        return;
       }
 
       // Parse info lines
@@ -223,6 +278,7 @@ export function useStockfish(options: UseStockfishOptions = {}) {
             ponderMove: ponder,
             isSearching: false,
           }));
+
           if (bestMove && bestMove !== '(none)') {
             onBestMoveRef.current?.(bestMove, ponder || undefined, currentAnalyzingFenRef.current);
           }
@@ -238,9 +294,9 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       worker.terminate();
       workerRef.current = null;
     };
-  }, [scheduleUpdate, flushUpdate]);
+  }, [scheduleUpdate, flushUpdate, executePendingSearch]);
 
-  // Send command
+  // Send raw command
   const sendCommand = useCallback((cmd: string) => {
     workerRef.current?.postMessage(cmd);
   }, []);
@@ -261,91 +317,19 @@ export function useStockfish(options: UseStockfishOptions = {}) {
     const fen = currentFen || currentAnalyzingFenRef.current;
     const depth = currentDepth || lastDepthRef.current || 14;
 
-    if (workerRef.current) {
+    if (fen && workerRef.current) {
+      searchGenRef.current += 1;
+      const gen = searchGenRef.current;
+      pendingSearchRef.current = {
+        gen,
+        fen,
+        depth,
+        multiPv: clamped,
+        mode: 'analyze',
+      };
       workerRef.current.postMessage('stop');
-      workerRef.current.postMessage(`setoption name MultiPV value ${clamped}`);
-
-      if (fen) {
-        currentAnalyzingFenRef.current = fen;
-        const sideToMove = (fen.split(' ')[1] as 'w' | 'b') || 'w';
-        activeTurnRef.current = sideToMove;
-        workerRef.current.postMessage(`position fen ${fen}`);
-        workerRef.current.postMessage(`go depth ${depth}`);
-      }
+      workerRef.current.postMessage('isready');
     }
-
-    setState(prev => ({
-      ...prev,
-      analyzedFen: fen || prev.analyzedFen,
-      isSearching: true,
-      bestMove: '',
-      pvLine: [],
-      multiPvLines: [],
-    }));
-  }, []);
-
-  // Start analysis of a position
-  const analyze = useCallback((fen: string, depth: number = 14, activeTurn?: 'w' | 'b') => {
-    if (!workerRef.current) return;
-    const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
-
-    // If already analyzing this exact position at the same depth, don't restart
-    if (currentAnalyzingFenRef.current === fen && lastDepthRef.current === depth && isReadyRef.current) {
-      return;
-    }
-
-    activeTurnRef.current = sideToMove;
-    currentAnalyzingFenRef.current = fen;
-    lastDepthRef.current = depth;
-    lastEmittedFenRef.current = '';
-
-    if (throttleTimerRef.current) {
-      clearTimeout(throttleTimerRef.current);
-      throttleTimerRef.current = null;
-    }
-    pendingUpdateRef.current = null;
-    multiPvMapRef.current.clear();
-
-    sendCommand('stop');
-    sendCommand(`setoption name MultiPV value ${multipvRef.current}`);
-    sendCommand(`position fen ${fen}`);
-    sendCommand(`go depth ${depth}`);
-
-    setState(prev => ({
-      ...prev,
-      analyzedFen: '', // Cleared so old position arrows disappear immediately!
-      isSearching: true,
-      bestMove: '',
-      pvLine: [],
-      multiPvLines: [],
-    }));
-  }, [sendCommand]);
-
-  // Start analysis for playing
-  const play = useCallback((fen: string, depth: number = 12, activeTurn?: 'w' | 'b') => {
-    if (!workerRef.current) return;
-    const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
-
-    if (currentAnalyzingFenRef.current === fen && lastDepthRef.current === depth && isReadyRef.current) {
-      return;
-    }
-
-    activeTurnRef.current = sideToMove;
-    currentAnalyzingFenRef.current = fen;
-    lastDepthRef.current = depth;
-    lastEmittedFenRef.current = '';
-
-    if (throttleTimerRef.current) {
-      clearTimeout(throttleTimerRef.current);
-      throttleTimerRef.current = null;
-    }
-    pendingUpdateRef.current = null;
-    multiPvMapRef.current.clear();
-
-    sendCommand('stop');
-    sendCommand(`setoption name MultiPV value 1`);
-    sendCommand(`position fen ${fen}`);
-    sendCommand(`go depth ${depth}`);
 
     setState(prev => ({
       ...prev,
@@ -355,10 +339,97 @@ export function useStockfish(options: UseStockfishOptions = {}) {
       pvLine: [],
       multiPvLines: [],
     }));
-  }, [sendCommand]);
+  }, []);
+
+  // Start analysis of a position with race barrier
+  const analyze = useCallback((fen: string, depth: number = 14, activeTurn?: 'w' | 'b') => {
+    if (!workerRef.current || !fen) return;
+    const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
+
+    // If already analyzing this exact position at the same depth and not searching, don't restart
+    if (currentAnalyzingFenRef.current === fen && lastDepthRef.current === depth && isReadyRef.current && pendingSearchRef.current === null) {
+      return;
+    }
+
+    activeTurnRef.current = sideToMove;
+
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    pendingUpdateRef.current = null;
+    multiPvMapRef.current.clear();
+
+    searchGenRef.current += 1;
+    const gen = searchGenRef.current;
+
+    pendingSearchRef.current = {
+      gen,
+      fen,
+      depth,
+      multiPv: multipvRef.current,
+      mode: 'analyze',
+    };
+
+    // Immediate stop and synchronization barrier
+    workerRef.current.postMessage('stop');
+    workerRef.current.postMessage('isready');
+
+    setState(prev => ({
+      ...prev,
+      analyzedFen: '', // Reset immediately so old arrows disappear
+      isSearching: true,
+      bestMove: '',
+      pvLine: [],
+      multiPvLines: [],
+    }));
+  }, []);
+
+  // Start analysis for playing (MultiPV 1)
+  const play = useCallback((fen: string, depth: number = 12, activeTurn?: 'w' | 'b') => {
+    if (!workerRef.current || !fen) return;
+    const sideToMove = activeTurn || (fen.split(' ')[1] as 'w' | 'b') || 'w';
+
+    if (currentAnalyzingFenRef.current === fen && lastDepthRef.current === depth && isReadyRef.current && pendingSearchRef.current === null) {
+      return;
+    }
+
+    activeTurnRef.current = sideToMove;
+
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+      throttleTimerRef.current = null;
+    }
+    pendingUpdateRef.current = null;
+    multiPvMapRef.current.clear();
+
+    searchGenRef.current += 1;
+    const gen = searchGenRef.current;
+
+    pendingSearchRef.current = {
+      gen,
+      fen,
+      depth,
+      multiPv: 1,
+      mode: 'play',
+    };
+
+    workerRef.current.postMessage('stop');
+    workerRef.current.postMessage('isready');
+
+    setState(prev => ({
+      ...prev,
+      analyzedFen: '',
+      isSearching: true,
+      bestMove: '',
+      pvLine: [],
+      multiPvLines: [],
+    }));
+  }, []);
 
   // Stop current search
   const stop = useCallback(() => {
+    pendingSearchRef.current = null;
     sendCommand('stop');
     if (throttleTimerRef.current) {
       clearTimeout(throttleTimerRef.current);
@@ -370,6 +441,8 @@ export function useStockfish(options: UseStockfishOptions = {}) {
 
   // Reset engine
   const newGame = useCallback(() => {
+    pendingSearchRef.current = null;
+    searchGenRef.current += 1;
     multiPvMapRef.current.clear();
     currentAnalyzingFenRef.current = '';
     lastEmittedFenRef.current = '';

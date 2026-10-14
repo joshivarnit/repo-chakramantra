@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { Chess } from 'chess.js';
 import { CHAKRA_TOPICS } from '../src/lib/constants';
 import { publicAuthor, PUBLICATION_NAME } from '../src/lib/public-display';
 import { classifyMove, parseBestMove, toFigurineNotation } from '../src/components/chess/chess-utils';
 import { detectOpening } from '../src/components/chess/openings';
+import { BOARD_THEMES } from '../src/components/chess/themes';
 
 test('CHAKRA_TOPICS has 24 unique canonical topics', () => {
   assert.equal(CHAKRA_TOPICS.length, 24);
@@ -116,3 +118,48 @@ test('eval mate formatting formats forced mates correctly', () => {
   assert.equal(formatMate(false, 0, 0), '+0.00');
 });
 
+test('threefold repetition is accurately preserved across moves with PGN cloning', () => {
+  const game = new Chess();
+  game.move('Nf3'); game.move('Nf6');
+  game.move('Ng1'); game.move('Ng8');
+  game.move('Nf3'); game.move('Nf6');
+  game.move('Ng1'); game.move('Ng8');
+
+  // Verify threefold repetition
+  assert.equal(game.isThreefoldRepetition(), true);
+
+  // Verify that cloning with PGN maintains the repetition history
+  const clone = new Chess();
+  clone.loadPgn(game.pgn());
+  assert.equal(clone.isThreefoldRepetition(), true);
+});
+
+test('BOARD_THEMES includes Lumi Master themes with Lumi Garden as premier default', () => {
+  assert.ok(BOARD_THEMES.length >= 6);
+  const premierTheme = BOARD_THEMES[0];
+  assert.equal(premierTheme.id, 'lumi-garden');
+  assert.equal(premierTheme.name, 'Lumi Garden');
+
+  const storybookTheme = BOARD_THEMES.find(t => t.id === 'lumi-storybook');
+  assert.ok(storybookTheme);
+
+  const twilightTheme = BOARD_THEMES.find(t => t.id === 'lumi-twilight');
+  assert.ok(twilightTheme);
+});
+
+test('pawn promotion move legality check and piece choices', () => {
+  // Test white promotion position
+  const promoFen = '8/4P3/8/8/8/8/8/4K2k w - - 0 1';
+  const game = new Chess(promoFen);
+  
+  // Queens promotion
+  const qMove = game.move({ from: 'e7', to: 'e8', promotion: 'q' });
+  assert.ok(qMove);
+  assert.equal(qMove.promotion, 'q');
+
+  // Knight underpromotion
+  const game2 = new Chess(promoFen);
+  const nMove = game2.move({ from: 'e7', to: 'e8', promotion: 'n' });
+  assert.ok(nMove);
+  assert.equal(nMove.promotion, 'n');
+});

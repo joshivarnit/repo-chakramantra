@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Chessboard } from 'react-chessboard';
 import { Chess, Square } from 'chess.js';
 import {
@@ -30,6 +31,7 @@ import {
   Flag,
   Handshake,
   ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 
 import { useStockfish } from './useStockfish';
@@ -70,6 +72,7 @@ import GameReport from './GameReport';
 import ConfirmActionModal, { type GameConfirmAction } from './ConfirmActionModal';
 import OpeningExplorerPanel from './OpeningExplorerPanel';
 import ArrowNumberBadges, { type ArrowBadge } from './ArrowNumberBadges';
+import PawnPromotionModal, { type PromotionMovePending } from './PawnPromotionModal';
 import { detectOpening, type Opening } from './openings';
 import MoveHistory from './MoveHistory';
 
@@ -79,28 +82,28 @@ import './chess-app.css';
 const sanGlobalCache = new Map<string, string>();
 const pvGlobalCache = new Map<string, string>();
 
-// 20-color progression for multi-line analysis arrows matching Chessis Pro video
+// Lumi Master signature hand-drawn storybook watercolor pastel arrow palette
 const ARROW_PALETTE = [
-  'rgba(59, 130, 246, 0.95)', // #1 Royal Blue
-  'rgba(34, 197, 94, 0.90)',  // #2 Emerald Green
-  'rgba(34, 197, 94, 0.85)',  // #3 Green
-  'rgba(249, 115, 22, 0.90)', // #4 Orange
-  'rgba(234, 179, 8, 0.90)',  // #5 Yellow
-  'rgba(249, 115, 22, 0.85)', // #6 Amber
-  'rgba(168, 85, 247, 0.90)', // #7 Purple
-  'rgba(236, 72, 153, 0.90)', // #8 Pink
-  'rgba(20, 184, 166, 0.90)', // #9 Teal
-  'rgba(59, 130, 246, 0.80)', // #10 Sky
-  'rgba(34, 197, 94, 0.80)',  // #11 Lime
-  'rgba(249, 115, 22, 0.80)', // #12 Coral
-  'rgba(234, 179, 8, 0.80)',  // #13 Gold
-  'rgba(168, 85, 247, 0.80)', // #14 Violet
-  'rgba(236, 72, 153, 0.80)', // #15 Rose
-  'rgba(20, 184, 166, 0.80)', // #16 Cyan
-  'rgba(59, 130, 246, 0.75)', // #17 Indigo
-  'rgba(34, 197, 94, 0.75)',  // #18 Forest
-  'rgba(249, 115, 22, 0.75)', // #19 Rust
-  'rgba(234, 179, 8, 0.75)',  // #20 Ochre
+  'rgba(56, 189, 248, 0.94)',  // #1 Sky Pastel Azure
+  'rgba(52, 211, 153, 0.94)',  // #2 Mint Watercolor Blossom
+  'rgba(251, 146, 60, 0.94)',  // #3 Apricot Coral Pastel
+  'rgba(250, 204, 21, 0.94)',  // #4 Buttercup Pastel Gold
+  'rgba(192, 132, 252, 0.94)', // #5 Lavender Orchid Wash
+  'rgba(244, 114, 182, 0.92)', // #6 Blossom Pink
+  'rgba(45, 212, 191, 0.92)',  // #7 Turquoise Watercolor
+  'rgba(163, 230, 53, 0.92)',  // #8 Fresh Leaf Green
+  'rgba(96, 165, 250, 0.90)',  // #9 Soft Periwinkle
+  'rgba(248, 113, 113, 0.90)', // #10 Strawberry Pastel
+  'rgba(217, 119, 6, 0.90)',   // #11 Warm Ochre
+  'rgba(147, 51, 234, 0.90)',  // #12 Deep Violet
+  'rgba(13, 148, 136, 0.90)',  // #13 Deep Jade
+  'rgba(225, 29, 72, 0.88)',   // #14 Crimson Wash
+  'rgba(2, 132, 199, 0.88)',   // #15 Ocean Indigo
+  'rgba(22, 163, 74, 0.88)',   // #16 Forest Moss
+  'rgba(234, 88, 12, 0.88)',   // #17 Ember Orange
+  'rgba(202, 138, 4, 0.88)',   // #18 Sunlit Gold
+  'rgba(124, 58, 237, 0.88)',  // #19 Twilight Iris
+  'rgba(190, 24, 93, 0.88)',   // #20 Rosebud
 ];
 
 export default function ChessApp() {
@@ -125,22 +128,25 @@ export default function ChessApp() {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
   const [selectedCandidateUci, setSelectedCandidateUci] = useState<string | null>(null);
+
+  // Default to signature Lumi Garden theme
   const [boardTheme, setBoardTheme] = useState<BoardTheme>(
-    BOARD_THEMES.find(t => t.id === 'walnut') || BOARD_THEMES[0]
+    BOARD_THEMES.find(t => t.id === 'lumi-garden') || BOARD_THEMES[0]
   );
+
+  // Pawn Promotion Interactive Modal state
+  const [pendingPromotion, setPendingPromotion] = useState<PromotionMovePending | null>(null);
 
   // Play Opponent Config
   const [playElo, setPlayElo] = useState<number>(2000);
   const [enginePaused, setEnginePaused] = useState(false);
   const [engineLineCount, setEngineLineCount] = useState<number>(3);
 
-  // Toasts
+  // Toasts & Lumi Storybook Companion state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [speechBubble, setSpeechBubble] = useState<string | null>(null);
+  const [speechBubble, setSpeechBubble] = useState<string | null>("✨ Hello! I'm Lumi. Ready for a cozy chess journey?");
   const [hintActive, setHintActive] = useState(false);
   const [confirmAction, setConfirmAction] = useState<GameConfirmAction | null>(null);
-
-
 
   // Comprehensive Settings State
   const [settings, setSettings] = useState<ChakraSettings>({
@@ -213,6 +219,7 @@ export default function ChessApp() {
   // Handle engine best move in Play mode
   const handleEngineBestMove = useCallback((bestMoveUci: string, _ponder?: string, analyzedFen?: string) => {
     if (mode !== 'play') return;
+    if (game.isGameOver()) return;
     if (game.turn() === playerColor) return;
     // Guard against stale bestmove calculations from past turns
     if (analyzedFen && analyzedFen !== game.fen()) return;
@@ -221,7 +228,7 @@ export default function ChessApp() {
     if (parsed) {
       if (botMoveTimeoutRef.current) clearTimeout(botMoveTimeoutRef.current);
       botMoveTimeoutRef.current = setTimeout(() => {
-        if (mode === 'play' && game.turn() !== playerColor) {
+        if (mode === 'play' && !game.isGameOver() && game.turn() !== playerColor) {
           const move = makeMove(parsed);
           if (move) {
             triggerMoveSound(move, game);
@@ -280,6 +287,7 @@ export default function ChessApp() {
     setSelectedCandidateUci(null);
     setSelectedSquare(null);
     setPossibleMoves([]);
+    setPendingPromotion(null);
   }, [game.fen()]);
 
   // Move eval classification
@@ -303,25 +311,53 @@ export default function ChessApp() {
 
         updateMoveEval(currentMoveIndex, evalFromWhite / 100, classification, cpLoss);
 
-        if (classification === 'blunder' && mode === 'play') {
+        if (classification === 'blunder') {
           if (settings.soundEnabled) playBlunderSound();
           showToast(`Blunder! ${entry.move.san} loses ${(cpLoss / 100).toFixed(1)} pawns`);
+          setSpeechBubble("🍃 A tricky spot! Let's examine the engine's alternatives.");
+        } else if (classification === 'brilliant' || classification === 'great') {
+          setSpeechBubble("✨ What a brilliant spark of insight!");
         }
       }
       prevEvalRef.current = evalFromWhite;
     }
-  }, [stockfish.depth, stockfish.evaluation, currentMoveIndex, moveHistory, mode, settings.soundEnabled, updateMoveEval, showToast]);
+  }, [stockfish.depth, stockfish.evaluation, currentMoveIndex, moveHistory, settings.soundEnabled, updateMoveEval, showToast]);
 
-  // Drag & drop move handler
-  const onPieceDrop = useCallback(({ sourceSquare, targetSquare, piece }: { sourceSquare: string; targetSquare: string | null; piece: { pieceType: string } }): boolean => {
+  // Check if a move is a pawn promotion move
+  const checkIsPromotion = useCallback((from: string, to: string) => {
+    const piece = game.get(from as Square);
+    if (!piece || piece.type !== 'p') return false;
+    if (piece.color === 'w' && from[1] === '7' && to[1] === '8') return true;
+    if (piece.color === 'b' && from[1] === '2' && to[1] === '1') return true;
+    return false;
+  }, [game]);
+
+  // Drag & drop move handler with promotion intercept
+  const onPieceDrop = useCallback(({ sourceSquare, targetSquare }: { sourceSquare: string; targetSquare: string | null; piece: { pieceType: string } }): boolean => {
     if (!targetSquare) return false;
+    if (isGameOver) return false;
     if (mode === 'play' && game.turn() !== playerColor) return false;
     if (mode === 'play' && currentMoveIndex < moveHistory.length - 1 && moveHistory.length > 0) return false;
+
+    // Check if legal move
+    const legalMoves = game.moves({ square: sourceSquare as Square, verbose: true });
+    const isLegalTarget = legalMoves.some(m => m.to === targetSquare);
+    if (!isLegalTarget) return false;
+
+    // Intercept pawn promotion to show beautiful storybook modal
+    if (checkIsPromotion(sourceSquare, targetSquare)) {
+      setPendingPromotion({
+        from: sourceSquare,
+        to: targetSquare,
+        color: game.turn(),
+      });
+      return false;
+    }
 
     const move = makeMove({
       from: sourceSquare,
       to: targetSquare,
-      promotion: piece?.pieceType?.[1]?.toLowerCase() === 'p' ? 'q' : (piece?.pieceType?.[1]?.toLowerCase() || 'q'),
+      promotion: 'q',
     });
 
     if (move) {
@@ -338,12 +374,12 @@ export default function ChessApp() {
     }
 
     return false;
-  }, [mode, game, playerColor, currentMoveIndex, moveHistory.length, makeMove, triggerMoveSound]);
+  }, [isGameOver, mode, game, playerColor, currentMoveIndex, moveHistory.length, checkIsPromotion, makeMove, triggerMoveSound]);
 
-  // Tap-to-move for touchscreens & smartphones
+  // Tap-to-move for touchscreens & smartphones with promotion intercept
   const onSquareClick = useCallback((args: { square?: string } | string) => {
     const square = typeof args === 'string' ? args : args?.square;
-    if (!square) return;
+    if (!square || isGameOver) return;
 
     if (mode === 'play' && game.turn() !== playerColor) return;
     if (mode === 'play' && currentMoveIndex < moveHistory.length - 1 && moveHistory.length > 0) return;
@@ -356,6 +392,17 @@ export default function ChessApp() {
       }
 
       if (possibleMoves.includes(square)) {
+        if (checkIsPromotion(selectedSquare, square)) {
+          setPendingPromotion({
+            from: selectedSquare,
+            to: square,
+            color: game.turn(),
+          });
+          setSelectedSquare(null);
+          setPossibleMoves([]);
+          return;
+        }
+
         const move = makeMove({
           from: selectedSquare,
           to: square,
@@ -394,7 +441,31 @@ export default function ChessApp() {
       const legalMoves = game.moves({ square: square as Square, verbose: true });
       setPossibleMoves(legalMoves.map(m => m.to));
     }
-  }, [mode, game, playerColor, currentMoveIndex, moveHistory.length, selectedSquare, possibleMoves, makeMove, triggerMoveSound]);
+  }, [isGameOver, mode, game, playerColor, currentMoveIndex, moveHistory.length, selectedSquare, possibleMoves, checkIsPromotion, makeMove, triggerMoveSound]);
+
+  // Confirm Pawn Promotion piece choice
+  const handleSelectPromotionPiece = useCallback((chosenPiece: 'q' | 'n' | 'r' | 'b') => {
+    if (!pendingPromotion) return;
+    const move = makeMove({
+      from: pendingPromotion.from,
+      to: pendingPromotion.to,
+      promotion: chosenPiece,
+    });
+    if (move) {
+      if (botMoveTimeoutRef.current) {
+        clearTimeout(botMoveTimeoutRef.current);
+        botMoveTimeoutRef.current = null;
+      }
+      triggerMoveSound(move, game);
+      const names = { q: 'Queen', n: 'Knight', r: 'Rook', b: 'Bishop' };
+      showToast(`Pawn ascended to ${names[chosenPiece]}! ✨`);
+    }
+    setPendingPromotion(null);
+    setSelectedSquare(null);
+    setPossibleMoves([]);
+    setSelectedCandidateUci(null);
+    setHintActive(false);
+  }, [pendingPromotion, makeMove, triggerMoveSound, game, showToast]);
 
   // Detect current opening from move history
   const currentOpening = useMemo(() => {
@@ -470,9 +541,9 @@ export default function ChessApp() {
       loadFEN(config.startFen);
     }
 
-    showToast('🔥 Game Started!');
-    setSpeechBubble('👋 Best of luck!');
-    setTimeout(() => setSpeechBubble(null), 4000);
+    showToast('✨ Cozy Match Begun! May your pieces dance gracefully.');
+    setSpeechBubble('👋 Best of luck! Remember to control the center.');
+    setTimeout(() => setSpeechBubble(null), 5000);
   };
 
   // Generate Accuracy Report
@@ -506,6 +577,7 @@ export default function ChessApp() {
         makeMove(san);
       });
       showToast(`Loaded ${op.eco}: ${op.name}`);
+      setSpeechBubble(`📖 ${op.name}: A delightful storybook opening!`);
     }, 100);
   };
 
@@ -522,6 +594,7 @@ export default function ChessApp() {
     stockfish.newGame();
     newGame(mode, playerColor, settings.engineDepth);
     showToast('Board reset to starting position');
+    setSpeechBubble("✨ Clean slate! What story will we write this time?");
   }, [mode, playerColor, settings.engineDepth, newGame, stockfish, showToast]);
 
   // Safe reset triggering confirmation if moves exist
@@ -542,6 +615,7 @@ export default function ChessApp() {
     playResignSound();
     const opponent = playerColor === 'w' ? 'Black' : 'White';
     showToast(`You resigned. ${opponent} wins!`);
+    setSpeechBubble("🍂 A noble resignation. Honor in bowing to a clever adversary.");
     stockfish.stop();
   }, [playerColor, showToast, stockfish]);
 
@@ -561,9 +635,11 @@ export default function ChessApp() {
     if (stockfish.isMate || evalScore > 150) {
       playWarningSound();
       showToast(`CPU declines your draw offer! Position is not balanced.`);
+      setSpeechBubble("🌲 The forest spirit senses an advantage and wishes to play on!");
     } else {
       playDrawSound();
       showToast('CPU accepts draw offer! Balanced game (1/2 - 1/2).');
+      setSpeechBubble("🍵 A peaceful draw by the warm hearth. Well played!");
       stockfish.stop();
     }
   }, [mode, stockfish.evaluation, stockfish.isMate, showToast, stockfish]);
@@ -589,22 +665,23 @@ export default function ChessApp() {
     setHintActive(!hintActive);
     if (!hintActive && stockfish.bestMove) {
       showToast(`Hint: Engine recommends ${stockfish.bestMove}`);
+      setSpeechBubble(`💡 Lumi whispered: "${stockfish.bestMove}" looks promising!`);
     }
   };
 
   // Build Board Square Styles
   const customSquareStyles: Record<string, React.CSSProperties> = {};
 
-  // Last move highlight
+  // Last move highlight with watercolor warmth
   if (currentMoveIndex >= 0 && moveHistory[currentMoveIndex]) {
     const lastMove = moveHistory[currentMoveIndex].move;
     customSquareStyles[lastMove.from] = {
       backgroundColor: boardTheme.lastMoveLight,
-      opacity: 0.65,
+      opacity: 0.72,
     };
     customSquareStyles[lastMove.to] = {
       backgroundColor: boardTheme.lastMoveDark,
-      opacity: 0.65,
+      opacity: 0.72,
     };
   }
 
@@ -612,18 +689,18 @@ export default function ChessApp() {
   if (selectedSquare) {
     customSquareStyles[selectedSquare] = {
       backgroundColor: 'rgba(234, 179, 8, 0.45)',
-      boxShadow: 'inset 0 0 0 3px #eab308',
+      boxShadow: 'inset 0 0 0 3px #eab308, 0 0 12px rgba(234, 179, 8, 0.4)',
     };
   }
 
-  // Move dots & capture rings
+  // Move dots & capture rings in cozy pastel tones
   possibleMoves.forEach(sq => {
     const isTargetOccupied = !!game.get(sq as Square);
     customSquareStyles[sq] = {
       ...customSquareStyles[sq],
       background: isTargetOccupied
-        ? 'radial-gradient(circle, rgba(239, 68, 68, 0.5) 15%, transparent 60%)'
-        : 'radial-gradient(circle, rgba(59, 130, 246, 0.65) 22%, transparent 28%)',
+        ? 'radial-gradient(circle, rgba(239, 68, 68, 0.55) 18%, transparent 64%)'
+        : 'radial-gradient(circle, rgba(56, 189, 248, 0.7) 24%, transparent 30%)',
       cursor: 'pointer',
     };
   });
@@ -646,7 +723,7 @@ export default function ChessApp() {
       if (!customSquareStyles[sq]?.boxShadow) {
         customSquareStyles[sq] = {
           ...customSquareStyles[sq],
-          boxShadow: 'inset 0 0 0 2px rgba(255, 165, 0, 0.6)',
+          boxShadow: 'inset 0 0 0 2px rgba(249, 115, 22, 0.6)',
         };
       }
     });
@@ -668,19 +745,18 @@ export default function ChessApp() {
     passed.forEach(sq => {
       customSquareStyles[sq] = {
         ...customSquareStyles[sq],
-        boxShadow: `${customSquareStyles[sq]?.boxShadow || ''} inset 0 0 8px rgba(0, 255, 0, 0.5)`.trim(),
+        boxShadow: `${customSquareStyles[sq]?.boxShadow || ''} inset 0 0 8px rgba(34, 197, 94, 0.5)`.trim(),
       };
     });
     isolated.forEach(sq => {
       customSquareStyles[sq] = {
         ...customSquareStyles[sq],
-        boxShadow: `${customSquareStyles[sq]?.boxShadow || ''} inset 0 0 8px rgba(255, 255, 0, 0.5)`.trim(),
+        boxShadow: `${customSquareStyles[sq]?.boxShadow || ''} inset 0 0 8px rgba(250, 204, 21, 0.5)`.trim(),
       };
     });
   }
 
-  // Multi-color Tactical Arrows & Number Badges (#1 Blue, #2 Green, #3 Orange, #4 Yellow, etc.)
-  // CRITICAL FIX: Only draw arrows if results correspond to CURRENT board position, it is the player's turn, and user is not selecting a piece!
+  // Multi-color Tactical Arrows & Number Badges in Lumi Master pastel tones
   const isHumanTurn = mode !== 'play' || game.turn() === playerColor;
   const isPositionCurrent = stockfish.analyzedFen === game.fen();
   const customArrows: Array<{ startSquare: string; endSquare: string; color: string }> = [];
@@ -740,7 +816,7 @@ export default function ChessApp() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [goBack, goForward, goToStart, goToEnd, flipBoard]);
 
-  // Memoized UCI to SAN converter (Eliminates main-thread freeze!)
+  // Memoized UCI to SAN converter
   const uciToSan = useCallback((uci: string, boardFen: string): string => {
     if (!uci || uci.length < 4) return uci;
     const key = `${boardFen}_${uci}`;
@@ -791,11 +867,16 @@ export default function ChessApp() {
     ? (mateIn > 0 ? `M${Math.abs(mateIn)}` : `-M${Math.abs(mateIn)}`)
     : ((stockfish.evaluation >= 0 ? '+' : '') + (stockfish.evaluation / 100).toFixed(2));
 
+  // Compute eval percentage with board orientation perspective
   let evalPercent: number;
   if (isMate) {
     evalPercent = mateIn > 0 ? 100 : 0;
   } else {
     evalPercent = Math.min(96, Math.max(4, 50 + (stockfish.evaluation / 100) * 8.5));
+  }
+
+  if (boardOrientation === 'black') {
+    evalPercent = 100 - evalPercent;
   }
 
   let evalTrackClass = "eval-progress-track";
@@ -811,7 +892,7 @@ export default function ChessApp() {
     ? (mateIn > 0 ? 'eval-score-bold score-mate-white' : 'eval-score-bold score-mate-black')
     : 'eval-score-bold';
 
-  // Handle drawer button click (mobile opens drawer, desktop toggles sidebar)
+  // Handle drawer button click
   const handleMenuButtonClick = () => {
     if (window.innerWidth < 900) {
       setIsDrawerOpen(true);
@@ -821,9 +902,9 @@ export default function ChessApp() {
   };
 
   return (
-    <div className="chess-app">
+    <div className="chess-app lumi-theme-active">
       {/* ──────────────────────────────────────────────────────────────────
-          TOP APP BAR (Matches Video 00:00 & 00:03)
+          TOP APP BAR WITH LUMI COMPANION PILL & STORYBOOK ACCENTS
           ────────────────────────────────────────────────────────────────── */}
       <header className="chess-top-bar">
         <div className="chess-top-left">
@@ -836,7 +917,8 @@ export default function ChessApp() {
             <Menu size={22} />
           </button>
           <Link href="/chess" className="chess-brand-link" title="ChakraChess">
-            <span>ChakraChess</span>
+            <span className="lumi-brand-icon">✨</span>
+            <span className="lumi-brand-name">ChakraChess</span>
           </Link>
           <Link href="/" className="chess-mantra-nav-btn" title="Go to ChakraMantra">
             <ExternalLink size={13} />
@@ -851,6 +933,7 @@ export default function ChessApp() {
             onClick={() => setShowOpenings(true)}
             title="Explore Opening Books"
           >
+            <span className="lumi-book-leaf">🍃</span>
             <span>{currentOpening ? `${currentOpening.eco}: ${currentOpening.name}` : 'C20: King Pawn Game'}</span>
           </button>
 
@@ -888,7 +971,7 @@ export default function ChessApp() {
       {/* Floating Bottom Toast */}
       {toastMessage && (
         <div className="floating-bottom-toast">
-          <span>🔥</span> {toastMessage}
+          <span>✨</span> {toastMessage}
         </div>
       )}
 
@@ -901,10 +984,17 @@ export default function ChessApp() {
           <div className="drawer-header">
             <div className="drawer-profile">
               <div className="drawer-avatar-ring">
-                <span className="drawer-avatar-icon">♟</span>
+                <Image
+                  src="/lumi-companion.jpg"
+                  alt="Lumi Companion"
+                  width={42}
+                  height={42}
+                  className="lumi-avatar-img"
+                />
               </div>
               <div className="drawer-title-group">
                 <h2 className="drawer-title">ChakraChess</h2>
+                <span className="lumi-byline">Cozy Storybook Edition</span>
               </div>
             </div>
           </div>
@@ -915,9 +1005,9 @@ export default function ChessApp() {
               { id: 'report' as const, label: 'Analyze Game', icon: <BarChart3 size={18} /> },
               { id: 'editor' as const, label: 'Board Editor', icon: <Edit3 size={18} /> },
               { id: 'archive' as const, label: 'Games Archive', icon: <FolderArchive size={18} /> },
-              { id: 'openings' as const, label: 'Openings', icon: <Target size={18} /> },
+              { id: 'openings' as const, label: 'Openings Book', icon: <Target size={18} /> },
               { id: 'settings' as const, label: 'Settings', icon: <SettingsIcon size={18} /> },
-              { id: 'about' as const, label: 'About', icon: <Info size={18} /> },
+              { id: 'about' as const, label: 'About Lumi', icon: <Info size={18} /> },
             ].map(item => (
               <button
                 key={item.id}
@@ -929,7 +1019,7 @@ export default function ChessApp() {
                 {activeView === item.id && <span className="drawer-item-indicator" />}
               </button>
             ))}
-            <div style={{ height: 1, margin: '8px 12px', background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ height: 1, margin: '8px 12px', background: 'rgba(180, 140, 110, 0.2)' }} />
             <a
               href="/"
               className="drawer-item drawer-mantra-item"
@@ -944,6 +1034,23 @@ export default function ChessApp() {
         {/* Center Chessboard Stage (Mobile & Desktop) */}
         <main className="chess-main-viewport desktop-center-stage">
           <div className="board-stage-container">
+            {/* Lumi Storybook Companion Header Bar */}
+            <div className="lumi-companion-strip">
+              <div className="lumi-companion-avatar-wrap" onClick={handleToggleHint} title="Click Lumi for advice!">
+                <Image
+                  src="/lumi-companion.jpg"
+                  alt="Lumi Scholar"
+                  width={34}
+                  height={34}
+                  className="lumi-small-avatar"
+                />
+                <span className="lumi-halo-sparkle">✦</span>
+              </div>
+              <div className="lumi-speech-bubble" onClick={handleToggleHint}>
+                <span>{speechBubble || (currentOpening ? `Lumi: ${currentOpening.name}` : "Lumi: Make your move, friend!")}</span>
+              </div>
+            </div>
+
             {/* Play Mode Opponent Profile Bar */}
             {mode === 'play' && (
               <div className="play-mode-opponent-bar">
@@ -953,16 +1060,11 @@ export default function ChessApp() {
                   </div>
                   <span className="opponent-elo-pill">CPU {playElo}</span>
                 </div>
-                {speechBubble && (
-                  <div className="greeting-speech-bubble">
-                    {speechBubble}
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Chess Board Area */}
-            <div className="chess-board-wrapper">
+            {/* Chess Board Area with Hand-Drawn Storybook Deckle Frame */}
+            <div className="chess-board-wrapper lumi-board-deckle">
               <Chessboard
                 options={{
                   id: "chakrachess-board",
@@ -971,7 +1073,7 @@ export default function ChessApp() {
                   onSquareClick,
                   boardOrientation: boardOrientation,
                   boardStyle: {
-                    borderRadius: '8px',
+                    borderRadius: '12px',
                   },
                   darkSquareStyle: { backgroundColor: boardTheme.darkSquare },
                   lightSquareStyle: { backgroundColor: boardTheme.lightSquare },
@@ -981,7 +1083,7 @@ export default function ChessApp() {
                 }}
               />
 
-              {/* Numbered Arrow Badges Overlay */}
+              {/* Numbered Arrow Badges Overlay in Storybook Pills */}
               <ArrowNumberBadges badges={arrowBadges} boardOrientation={boardOrientation} />
             </div>
 
@@ -990,12 +1092,12 @@ export default function ChessApp() {
               <div className="play-mode-opponent-bar" style={{ marginTop: 4 }}>
                 <div className="active-player-tag">
                   <span className="active-dot" />
-                  <span>You</span>
+                  <span>You ({playerColor === 'w' ? 'White' : 'Black'})</span>
                 </div>
               </div>
             )}
 
-            {/* Integrated Horizontal Eval Bar (Matches Video 00:00, 00:18, 00:43) */}
+            {/* Integrated Horizontal Eval Bar in Watercolor Pastel */}
             <div className="integrated-horizontal-eval-bar">
               <div className={evalTrackClass} style={{ width: `${evalPercent}%` }} />
               <div className="eval-bar-content">
@@ -1011,13 +1113,13 @@ export default function ChessApp() {
                 </div>
 
                 <div className="eval-bar-controls">
-                  {/* Quick Engine Depth Selector (Feature 3) */}
+                  {/* Quick Engine Depth Selector */}
                   <div className="quick-depth-selector" title="Quick Engine Calculation Depth">
                     <button
                       type="button"
                       className={`depth-pill-btn ${settings.engineDepth <= 10 ? 'active' : ''}`}
                       onClick={() => handleQuickDepthChange(10)}
-                      title="Fast (Depth 10) - Instant speed"
+                      title="Fast (Depth 10)"
                     >
                       Fast
                     </button>
@@ -1025,7 +1127,7 @@ export default function ChessApp() {
                       type="button"
                       className={`depth-pill-btn ${settings.engineDepth > 10 && settings.engineDepth <= 16 ? 'active' : ''}`}
                       onClick={() => handleQuickDepthChange(16)}
-                      title="Normal (Depth 16) - Balanced play"
+                      title="Normal (Depth 16)"
                     >
                       Norm
                     </button>
@@ -1033,7 +1135,7 @@ export default function ChessApp() {
                       type="button"
                       className={`depth-pill-btn ${settings.engineDepth > 16 ? 'active' : ''}`}
                       onClick={() => handleQuickDepthChange(22)}
-                      title="Deep (Depth 22) - Tactical calculation"
+                      title="Deep (Depth 22)"
                     >
                       Deep
                     </button>
@@ -1064,7 +1166,7 @@ export default function ChessApp() {
               </div>
             </div>
 
-            {/* Multi-PV Engine Lines (Shown on mobile screens, hidden on desktop where it's in right hub) */}
+            {/* Multi-PV Engine Lines (Mobile view) */}
             <div className="engine-variations-container">
               <div className="variations-header-pill">
                 <span>Engines lines (Variations): {engineLineCount}</span>
@@ -1103,7 +1205,7 @@ export default function ChessApp() {
               })}
             </div>
 
-            {/* Bottom Dock Toolbar (Video 00:00, 00:03, 00:43) */}
+            {/* Bottom Dock Toolbar in Warm Illustrated River-Stone Style */}
             <div className="chess-bottom-dock">
               <button className="dock-btn" onClick={handleResetBoard} title="Reset Board">
                 <RotateCcw size={20} />
@@ -1124,7 +1226,7 @@ export default function ChessApp() {
               <button
                 className={`dock-btn ${hintActive ? 'active-hint' : ''}`}
                 onClick={handleToggleHint}
-                title="Engine Move Hint"
+                title="Ask Lumi for a Move Hint"
               >
                 <Lightbulb size={20} />
               </button>
@@ -1147,7 +1249,7 @@ export default function ChessApp() {
           </div>
         </main>
 
-        {/* Right Desktop Widescreen Hub (Clean, Non-Smushed, Fully Scrollable) */}
+        {/* Right Desktop Widescreen Hub */}
         <aside className="desktop-right-widescreen-hub">
           <div className="widescreen-tabs-header">
             <button
@@ -1160,7 +1262,7 @@ export default function ChessApp() {
               className={`widescreen-tab-btn ${desktopRightTab === 'history' ? 'active' : ''}`}
               onClick={() => setDesktopRightTab('history')}
             >
-              📜 Move Tree ({moveHistory.length})
+              📜 Story Moves ({moveHistory.length})
             </button>
             <button
               className={`widescreen-tab-btn ${desktopRightTab === 'openings' ? 'active' : ''}`}
@@ -1173,7 +1275,6 @@ export default function ChessApp() {
           <div className="widescreen-tab-content">
             {desktopRightTab === 'variations' && (
               <div className="desktop-variations-view">
-                {/* Lines adjuster matching Video 1000015055 */}
                 <div className="variations-header-pill" style={{ marginBottom: 10 }}>
                   <span>Engines lines (Variations): {engineLineCount}</span>
                   <div className="variations-counter-group">
@@ -1182,14 +1283,14 @@ export default function ChessApp() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', fontSize: 11, color: '#94a3b8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px 8px', fontSize: 11, color: 'var(--lumi-ink-soft, #94a3b8)' }}>
                   <span>{enginePaused ? '⏸ Paused' : `Depth: ${stockfish.depth}`}</span>
                   <span>{stockfish.nps ? `${Math.round(stockfish.nps / 1000)}k nps` : ''}</span>
                 </div>
 
                 {stockfish.multiPvLines.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '24px 12px', color: '#94a3b8', fontSize: 13 }}>
-                    {enginePaused ? 'Engine is paused. Tap Play to resume.' : 'Calculating top candidate moves...'}
+                  <div style={{ textAlign: 'center', padding: '24px 12px', color: 'var(--lumi-ink-soft, #94a3b8)', fontSize: 13 }}>
+                    {enginePaused ? 'Engine is paused. Tap Play to resume.' : 'Lumi is listening to the pieces whisper...'}
                   </div>
                 ) : (
                   stockfish.multiPvLines.slice(0, engineLineCount).map((line, idx) => {
@@ -1251,6 +1352,13 @@ export default function ChessApp() {
       {/* ──────────────────────────────────────────────────────────────────
           ALL INTERACTIVE MODALS & DRAWERS
           ────────────────────────────────────────────────────────────────── */}
+      <PawnPromotionModal
+        isOpen={pendingPromotion !== null}
+        pendingMove={pendingPromotion}
+        onSelectPiece={handleSelectPromotionPiece}
+        onCancel={() => setPendingPromotion(null)}
+      />
+
       <DrawerSidebar
         isOpen={isDrawerOpen}
         activeView={activeView}
@@ -1287,9 +1395,11 @@ export default function ChessApp() {
         onOfferDraw={mode === 'play' ? handleOfferDraw : undefined}
         onSharePgn={() => {
           if (navigator.clipboard) navigator.clipboard.writeText(getPGN());
+          showToast('PGN copied to clipboard! 📋');
         }}
         onShareFen={() => {
           if (navigator.clipboard) navigator.clipboard.writeText(game.fen());
+          showToast('FEN copied to clipboard! 📋');
         }}
         onSavePgn={() => {
           const blob = new Blob([getPGN()], { type: 'text/plain' });
@@ -1298,6 +1408,7 @@ export default function ChessApp() {
           a.href = url;
           a.download = `chakrachess_${Date.now()}.pgn`;
           a.click();
+          showToast('PGN downloaded! 💾');
         }}
         onAnalyzePgn={handleShowReport}
         onPlayFromHere={() => {

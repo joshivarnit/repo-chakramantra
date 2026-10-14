@@ -36,12 +36,12 @@ export default function ArrowNumberBadges({
           row = 7 - row;
         }
 
-        // Dock in the top-right corner of the destination square so pieces & arrowheads remain clearly visible
+        // Dock in the top-right corner of the destination square with storybook pill styling
         const squareOccurrences = badges.filter(badge => badge.square === b.square);
         const indexOnSquare = squareOccurrences.findIndex(badge => badge.id === b.id);
-        const baseLeft = col * 12.5 + 9.8;
-        const leftPercent = Math.max(col * 12.5 + 1.5, baseLeft - indexOnSquare * 3.2);
-        const topPercent = row * 12.5 + 2.5;
+        const baseLeft = col * 12.5 + 9.6;
+        const leftPercent = Math.max(col * 12.5 + 1.2, baseLeft - indexOnSquare * 3.4);
+        const topPercent = row * 12.5 + 2.2;
 
         return (
           <div
