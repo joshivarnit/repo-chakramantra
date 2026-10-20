@@ -17,11 +17,21 @@ import {
   Minimize2,
 } from "lucide-react";
 
+export interface LumiBoardAction {
+  type: string;
+  pgn?: string;
+  fen?: string;
+  moveNumber?: number;
+  moveIndex?: number;
+  title?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "lumi";
   text: string;
   timestamp: number;
+  action?: LumiBoardAction;
 }
 
 interface LumiChatModalProps {
@@ -36,15 +46,16 @@ interface LumiChatModalProps {
   isCheck?: boolean;
   isGameOver?: boolean;
   onLumiSpeechUpdate?: (text: string) => void;
+  onExecuteAction?: (action: LumiBoardAction) => void;
 }
 
 const PRESET_PROMPTS = [
+  { label: "🏆 Magnus vs Anand 2014 Move 12", prompt: "Load magnus vs Viswanathan World Chess Championship 2014 match move 12" },
   { label: "💡 Best Move", prompt: "What is the best move here and why?" },
   { label: "🎯 Strategy", prompt: "What strategic plan should I follow in this position?" },
   { label: "👑 King Safety", prompt: "How safe is my king right now?" },
   { label: "🛡️ Threats", prompt: "Are there any hidden tactical threats against me?" },
   { label: "📖 Opening", prompt: "Can you explain this opening and key ideas?" },
-  { label: "✨ Cheer Me Up", prompt: "Cheer me on with some chess inspiration!" },
 ];
 
 export default function LumiChatModal({
@@ -59,6 +70,7 @@ export default function LumiChatModal({
   isCheck,
   isGameOver,
   onLumiSpeechUpdate,
+  onExecuteAction,
 }: LumiChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -122,11 +134,16 @@ export default function LumiChatModal({
       const data = await res.json();
       const replyText = data.reply || "✨ Play with grace and trust your piece coordination!";
 
+      if (data.action && onExecuteAction) {
+        onExecuteAction(data.action);
+      }
+
       const lumiMsg: ChatMessage = {
         id: `l-${Date.now()}`,
         role: "lumi",
         text: replyText,
         timestamp: Date.now(),
+        action: data.action,
       };
 
       setMessages((prev) => [...prev, lumiMsg]);
@@ -263,7 +280,33 @@ export default function LumiChatModal({
                       : "bg-[#1a1c2b] border border-white/10 text-gray-200 rounded-tl-none whitespace-pre-line"
                   }`}
                 >
-                  {msg.text}
+                  <div>{msg.text}</div>
+
+                  {msg.action && (
+                    <div className="mt-3 p-3 rounded-xl bg-amber-500/15 border border-amber-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                        <div>
+                          <div className="font-bold text-amber-200 text-xs">
+                            ⚡ Board Action: {msg.action.title}
+                          </div>
+                          {msg.action.moveNumber && (
+                            <div className="text-[11px] text-amber-300/80">
+                              Position active at Move {msg.action.moveNumber}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={onClose}
+                        className="px-3 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-bold text-xs hover:bg-amber-300 transition-all shadow-md shrink-0 self-start sm:self-auto flex items-center gap-1 cursor-pointer"
+                        title="Close chat and view the position on board"
+                      >
+                        <span>View on Board</span>
+                        <span>♟️</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );

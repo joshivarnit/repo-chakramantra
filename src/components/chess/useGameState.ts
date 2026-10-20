@@ -217,8 +217,8 @@ export function useGameState() {
     });
   }, []);
 
-  // Load PGN
-  const loadPGN = useCallback((pgn: string): boolean => {
+  // Load PGN with optional target move index
+  const loadPGN = useCallback((pgn: string, targetMoveIndex?: number): boolean => {
     try {
       const tempGame = new Chess();
       tempGame.loadPgn(pgn);
@@ -236,18 +236,24 @@ export function useGameState() {
         });
       }
 
-      gameRef.current = newGame;
+      const finalIndex = (typeof targetMoveIndex === 'number' && targetMoveIndex >= -1 && targetMoveIndex < history.length)
+        ? targetMoveIndex
+        : history.length - 1;
+
+      const activeGame = buildGameToMoveIndex(history, finalIndex);
+      gameRef.current = activeGame;
       startingFenRef.current = null;
+
       setState(prev => ({
         ...prev,
-        game: newGame,
+        game: activeGame,
         moveHistory: history,
-        currentMoveIndex: history.length - 1,
+        currentMoveIndex: finalIndex,
         mode: 'analysis',
-        isGameOver: newGame.isGameOver(),
-        gameResult: newGame.isGameOver()
-          ? (newGame.isCheckmate()
-              ? (newGame.turn() === 'w' ? '0-1' : '1-0')
+        isGameOver: activeGame.isGameOver(),
+        gameResult: activeGame.isGameOver()
+          ? (activeGame.isCheckmate()
+              ? (activeGame.turn() === 'w' ? '0-1' : '1-0')
               : '½-½')
           : '',
       }));

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { findFamousGameByQuery } from "@/components/chess/famous-games";
 
 interface LumiChatRequest {
   message: string;
@@ -38,6 +39,52 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
+
+    // 1. Check if user requested loading or exploring a famous historical match / move
+    const matched = findFamousGameByQuery(message);
+    if (matched) {
+      const moveNum = matched.moveNumber;
+      const moveDesc = moveNum ? `move ${moveNum}` : 'the starting position';
+      let commentary = `✨ Loading **${matched.game.white} vs. ${matched.game.black}** from the ${matched.game.event} at **${moveDesc}** directly onto the board!\n\n${matched.game.description}`;
+
+      if (apiKey && apiKey !== "your_actual_key_here") {
+        try {
+          const genAI = new GoogleGenerativeAI(apiKey);
+          const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          const prompt = `You are Lumi, the wise and encouraging AI chess companion for ChakraChess.
+The user asked: "${message}".
+We are setting up this historical championship match directly onto the player's board:
+- Match: ${matched.game.white} vs ${matched.game.black} (${matched.game.event}, ${matched.game.year})
+- Target Move: ${moveNum || 1}
+- PGN: ${matched.game.pgn}
+
+Write a concise, 2-paragraph storytelling response confirming that you have loaded the match onto the board at move ${moveNum || 1}. Describe the strategic tension of the position at this move and invite them to explore candidate moves or play from here.
+Start with: "✨ Loading ${matched.game.white} vs. ${matched.game.black} (${matched.game.event}) at move ${moveNum || 1} onto the board!"`;
+
+          const aiRes = await model.generateContent(prompt);
+          const aiText = aiRes.response.text().trim();
+          if (aiText) {
+            commentary = aiText;
+          }
+        } catch {
+          // fallback to default commentary
+        }
+      }
+
+      const moveIdx = matched.moveIndex !== undefined ? matched.moveIndex : (matched.moveNumber ? matched.moveNumber * 2 - 1 : 0);
+
+      return NextResponse.json({
+        reply: commentary,
+        action: {
+          type: "load_game",
+          pgn: matched.game.pgn,
+          moveNumber: matched.moveNumber,
+          moveIndex: moveIdx,
+          title: `${matched.game.white} vs. ${matched.game.black} (${matched.game.year})`,
+        },
+        source: "famous-game-match",
+      });
+    }
 
     // Build position context
     const turnStr = turn === "w" ? "White to move" : "Black to move";

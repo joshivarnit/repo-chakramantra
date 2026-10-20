@@ -573,6 +573,30 @@ export default function ChessApp() {
     setShowReport(true);
   }, [moveHistory, mode, playerColor, showToast]);
 
+  // Handle actions dispatched by Lumi AI (e.g. load historic game at move X)
+  const handleExecuteLumiAction = useCallback((action: {
+    type: string;
+    pgn?: string;
+    fen?: string;
+    moveNumber?: number;
+    moveIndex?: number;
+    title?: string;
+  }) => {
+    if (action.type === 'load_game' && action.pgn) {
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      setSelectedCandidateUci(null);
+      setHintActive(false);
+
+      const targetIdx = typeof action.moveIndex === 'number' ? action.moveIndex : undefined;
+      const success = loadPGN(action.pgn, targetIdx);
+      if (success) {
+        showToast(`✨ Lumi loaded: ${action.title || 'Game'}${action.moveNumber ? ` (Move ${action.moveNumber})` : ''}!`);
+        setSpeechBubble(`✨ Loaded ${action.title || 'Game'} at move ${action.moveNumber || 1}! Take a look.`);
+      }
+    }
+  }, [loadPGN, showToast]);
+
   // Load Opening on board
   const handleSelectOpening = (op: Opening) => {
     newGame('analysis', 'w', settings.engineDepth);
@@ -1511,6 +1535,7 @@ export default function ChessApp() {
         isCheck={game.inCheck()}
         isGameOver={game.isGameOver()}
         onLumiSpeechUpdate={(text) => setSpeechBubble(`✨ ${text.slice(0, 100)}...`)}
+        onExecuteAction={handleExecuteLumiAction}
       />
     </div>
   );
