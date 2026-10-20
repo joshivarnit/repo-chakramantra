@@ -28,7 +28,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
             </div>
             <div>
               <h2 className="about-title" style={{ fontSize: 20, margin: 0, fontWeight: 800 }}>ChakraChess</h2>
-              <span className="lumi-byline" style={{ fontSize: 12 }}>Lumi Master Storybook Edition</span>
+              <span className="lumi-byline" style={{ fontSize: 12 }}>Lumi AI Companion</span>
             </div>
           </div>
           <button className="about-close-btn lumi-modal-close-btn" onClick={onClose} aria-label="Close">
@@ -43,7 +43,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
               <div>
                 <strong style={{ color: '#f8fafc', fontSize: 13 }}>Hand-Drawn Watercolor Aesthetic</strong>
                 <p style={{ margin: '2px 0 0', fontSize: 12, color: '#cbd5e1', lineHeight: 1.4 }}>
-                  Inspired by the cozy, stylized illustration look of Lumi Master. Soft pastel hues, hand-painted wooden boards, and delicate paper washes.
+                  Stylized illustration aesthetic with soft pastel hues, hand-painted wooden boards, and delicate paper washes.
                 </p>
               </div>
             </div>
@@ -82,7 +82,7 @@ export default function AboutModal({ isOpen, onClose }: AboutModalProps) {
           </div>
 
           <div className="about-footer-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.1)', fontSize: 11, color: '#94a3b8' }}>
-            <span>Version 3.0.0 (Lumi Storybook Edition)</span>
+            <span>Version 3.1.0 (Lumi AI Companion)</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               Crafted with <Heart size={11} style={{ color: '#f43f5e', fill: '#f43f5e' }} /> for ChakraMantra
             </span>

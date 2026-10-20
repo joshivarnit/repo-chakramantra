@@ -103,7 +103,15 @@ export default async function ArticlesPage({
       </main>
 
       <footer className="border-t border-white/5 py-10 text-center text-xs text-gray-500">
-        © 2026 Chakramantra. All rights reserved.
+        <div className="container mx-auto px-4 max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p>© 2026 Chakramantra. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/" className="hover:text-gray-300 transition-colors">Home</Link>
+            <Link href="/public-apis" className="hover:text-purple-300 transition-colors">Public APIs</Link>
+            <Link href="/chess" className="hover:text-purple-400 transition-colors">ChakraChess</Link>
+            <Link href="/about" className="hover:text-gray-300 transition-colors">About</Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

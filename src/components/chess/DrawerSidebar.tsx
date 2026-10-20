@@ -12,6 +12,7 @@ import {
   Info,
   X,
   ExternalLink,
+  MessageCircle,
 } from 'lucide-react';
 
 export type ActiveView = 
@@ -22,7 +23,8 @@ export type ActiveView =
   | 'archive'
   | 'openings'
   | 'settings'
-  | 'about';
+  | 'about'
+  | 'lumi';
 
 interface DrawerSidebarProps {
   isOpen: boolean;
@@ -39,6 +41,7 @@ export default function DrawerSidebar({
 }: DrawerSidebarProps) {
   const menuItems: Array<{ id: ActiveView; label: string; icon: React.ReactNode }> = [
     { id: 'analysis', label: 'Analysis Board', icon: <Search size={20} /> },
+    { id: 'lumi', label: 'Talk to Lumi ✨', icon: <MessageCircle size={20} /> },
     { id: 'play', label: 'Play Chess', icon: <Swords size={20} /> },
     { id: 'report', label: 'Analyze Game', icon: <BarChart3 size={20} /> },
     { id: 'editor', label: 'Board Editor', icon: <Edit3 size={20} /> },

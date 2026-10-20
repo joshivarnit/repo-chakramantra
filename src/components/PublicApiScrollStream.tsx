@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 export interface PublicAPI {
   API: string;
@@ -185,17 +186,26 @@ export default function PublicApiScrollStream() {
         {/* Footer info banner */}
         <div className="mt-12 p-6 rounded-2xl bg-gradient-to-r from-purple-900/20 via-slate-900/40 to-cyan-900/20 border border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <div>
-            <h4 className="text-sm font-bold text-white">Sourced from public-api-lists</h4>
-            <p className="text-xs text-gray-400 mt-0.5">Community-maintained directory of 730+ verified free public APIs.</p>
+            <h4 className="text-sm font-bold text-white">Full 730+ Public APIs Catalog</h4>
+            <p className="text-xs text-gray-400 mt-0.5">Filter by 48 categories, Auth requirements, CORS support, test endpoints and copy code snippets.</p>
           </div>
-          <a
-            href="https://github.com/public-api-lists/public-api-lists"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-5 py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold rounded-xl transition-all whitespace-nowrap no-underline"
-          >
-            GitHub Repository ↗
-          </a>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/public-apis"
+              className="px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-purple-600/30 flex items-center gap-1.5 no-underline whitespace-nowrap"
+            >
+              <span>Explore All 730+ APIs</span>
+              <span>→</span>
+            </Link>
+            <a
+              href="https://github.com/public-api-lists/public-api-lists"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold rounded-xl transition-all whitespace-nowrap no-underline"
+            >
+              GitHub ↗
+            </a>
+          </div>
         </div>
       </div>
     </section>

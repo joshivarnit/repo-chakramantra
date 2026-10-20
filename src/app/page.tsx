@@ -127,6 +127,7 @@ export default async function Home() {
             <p>© 2026 Chakramantra. All rights reserved.</p>
             <div className="flex items-center gap-6">
               <Link href="/about" className="hover:text-gray-300 transition-colors">About</Link>
+              <Link href="/public-apis" className="hover:text-purple-300 transition-colors">Public APIs</Link>
               <Link href="/chess" className="hover:text-purple-400 transition-colors">ChakraChess</Link>
               <Link href="/articles" className="hover:text-gray-300 transition-colors">Articles</Link>
             </div>

@@ -32,6 +32,7 @@ import {
   Handshake,
   ExternalLink,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react';
 
 import { useStockfish } from './useStockfish';
@@ -73,6 +74,7 @@ import ConfirmActionModal, { type GameConfirmAction } from './ConfirmActionModal
 import OpeningExplorerPanel from './OpeningExplorerPanel';
 import ArrowNumberBadges, { type ArrowBadge } from './ArrowNumberBadges';
 import PawnPromotionModal, { type PromotionMovePending } from './PawnPromotionModal';
+import LumiChatModal from './LumiChatModal';
 import { detectOpening, type Opening } from './openings';
 import MoveHistory from './MoveHistory';
 
@@ -119,6 +121,7 @@ export default function ChessApp() {
   const [showArchive, setShowArchive] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showLumiChat, setShowLumiChat] = useState(false);
   const [gameReport, setGameReport] = useState<GameReportData | null>(null);
 
   // Widescreen Right Hub Tab
@@ -510,6 +513,9 @@ export default function ChessApp() {
         break;
       case 'about':
         setShowAbout(true);
+        break;
+      case 'lumi':
+        setShowLumiChat(true);
         break;
     }
   };
@@ -994,13 +1000,13 @@ export default function ChessApp() {
               </div>
               <div className="drawer-title-group">
                 <h2 className="drawer-title">ChakraChess</h2>
-                <span className="lumi-byline">Cozy Storybook Edition</span>
               </div>
             </div>
           </div>
           <nav className="desktop-sidebar-nav">
             {[
               { id: 'analysis' as const, label: 'Analysis Board', icon: <Search size={18} /> },
+              { id: 'lumi' as const, label: 'Talk to Lumi ✨', icon: <MessageCircle size={18} /> },
               { id: 'play' as const, label: 'Play Chess', icon: <Swords size={18} /> },
               { id: 'report' as const, label: 'Analyze Game', icon: <BarChart3 size={18} /> },
               { id: 'editor' as const, label: 'Board Editor', icon: <Edit3 size={18} /> },
@@ -1034,9 +1040,13 @@ export default function ChessApp() {
         {/* Center Chessboard Stage (Mobile & Desktop) */}
         <main className="chess-main-viewport desktop-center-stage">
           <div className="board-stage-container">
-            {/* Lumi Storybook Companion Header Bar */}
+            {/* Lumi AI Companion Header Bar */}
             <div className="lumi-companion-strip">
-              <div className="lumi-companion-avatar-wrap" onClick={handleToggleHint} title="Click Lumi for advice!">
+              <div
+                className="lumi-companion-avatar-wrap"
+                onClick={() => setShowLumiChat(true)}
+                title="Click to chat with Lumi!"
+              >
                 <Image
                   src="/lumi-companion.jpg"
                   alt="Lumi Scholar"
@@ -1046,9 +1056,25 @@ export default function ChessApp() {
                 />
                 <span className="lumi-halo-sparkle">✦</span>
               </div>
-              <div className="lumi-speech-bubble" onClick={handleToggleHint}>
+              <div
+                className="lumi-speech-bubble"
+                onClick={() => setShowLumiChat(true)}
+                title="Click to chat with Lumi!"
+              >
                 <span>{speechBubble || (currentOpening ? `Lumi: ${currentOpening.name}` : "Lumi: Make your move, friend!")}</span>
               </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowLumiChat(true);
+                }}
+                className="lumi-chat-trigger-btn"
+                title="Chat with Lumi AI Companion"
+              >
+                <MessageCircle size={13} />
+                <span>Talk to Lumi</span>
+              </button>
             </div>
 
             {/* Play Mode Opponent Profile Bar */}
@@ -1471,6 +1497,20 @@ export default function ChessApp() {
           }
         }}
         onClose={() => setConfirmAction(null)}
+      />
+
+      <LumiChatModal
+        isOpen={showLumiChat}
+        onClose={() => setShowLumiChat(false)}
+        fen={game.fen()}
+        lastMove={moveHistory[moveHistory.length - 1]?.move.san}
+        bestMove={stockfish.bestMoveSan || stockfish.bestMove || (customArrows[0] ? `${customArrows[0].startSquare}-${customArrows[0].endSquare}` : undefined)}
+        evalCentipawns={stockfish.evaluation}
+        opening={currentOpening?.name}
+        turn={game.turn()}
+        isCheck={game.inCheck()}
+        isGameOver={game.isGameOver()}
+        onLumiSpeechUpdate={(text) => setSpeechBubble(`✨ ${text.slice(0, 100)}...`)}
       />
     </div>
   );

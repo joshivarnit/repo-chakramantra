@@ -28,6 +28,12 @@ export default function SiteHeader() {
             Articles
           </Link>
           <Link
+            href="/public-apis"
+            className="transition-colors hover:text-purple-300 text-foreground/60 whitespace-nowrap"
+          >
+            Public APIs
+          </Link>
+          <Link
             href="/chess"
             className="transition-colors hover:text-primary text-foreground/80 font-semibold flex items-center gap-1 whitespace-nowrap px-2 sm:px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300"
           >
