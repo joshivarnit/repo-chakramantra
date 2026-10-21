@@ -35,7 +35,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 
-import { useStockfish } from './useStockfish';
+import { useStockfish, normalizeFen } from './useStockfish';
 import { useGameState } from './useGameState';
 import { BOARD_THEMES, type BoardTheme, type MoveClassification } from './themes';
 import {
@@ -160,7 +160,7 @@ export default function ChessApp() {
     useNnue: true,
     engineThreads: 2,
     engineHash: 64,
-    engineDepth: 18,
+    engineDepth: 14,
     figurineNotation: true,
     pieceAnimationSpeed: 'default',
     enlargePieceOnDrag: true,
@@ -225,7 +225,7 @@ export default function ChessApp() {
     if (game.isGameOver()) return;
     if (game.turn() === playerColor) return;
     // Guard against stale bestmove calculations from past turns
-    if (analyzedFen && analyzedFen !== game.fen()) return;
+    if (analyzedFen && normalizeFen(analyzedFen) !== normalizeFen(game.fen())) return;
 
     const parsed = parseBestMove(bestMoveUci);
     if (parsed) {
@@ -262,28 +262,30 @@ export default function ChessApp() {
       showToast('⏸ Engine Analysis Paused');
     } else {
       setEnginePaused(false);
-      stockfish.analyze(game.fen(), settings.engineDepth);
+      const sanMoves = moveHistory.slice(0, currentMoveIndex + 1).map(m => m.move.san);
+      stockfish.analyze(game.fen(), settings.engineDepth, undefined, sanMoves);
       showToast('▶ Engine Analysis Resumed');
     }
-  }, [enginePaused, stockfish, game, settings.engineDepth, showToast]);
+  }, [enginePaused, stockfish, game, settings.engineDepth, moveHistory, currentMoveIndex, showToast]);
 
-  // Position feed to engine
+  // Position feed to engine with instant book assistance
   useEffect(() => {
     if (enginePaused) return;
 
     const fen = game.fen();
     const isAtEnd = currentMoveIndex === moveHistory.length - 1 || moveHistory.length === 0;
+    const sanMoves = moveHistory.slice(0, currentMoveIndex + 1).map(m => m.move.san);
 
     if (mode === 'play' && isAtEnd && !isGameOver) {
       if (game.turn() !== playerColor) {
         stockfish.play(fen, settings.engineDepth);
       } else {
-        stockfish.analyze(fen, settings.engineDepth);
+        stockfish.analyze(fen, settings.engineDepth, undefined, sanMoves);
       }
     } else {
-      stockfish.analyze(fen, settings.engineDepth);
+      stockfish.analyze(fen, settings.engineDepth, undefined, sanMoves);
     }
-  }, [game.fen(), mode, playerColor, settings.engineDepth, currentMoveIndex, moveHistory.length, isGameOver, enginePaused]);
+  }, [game.fen(), mode, playerColor, settings.engineDepth, currentMoveIndex, moveHistory, isGameOver, enginePaused]);
 
   // Reset candidate line selection when board position changes
   useEffect(() => {
@@ -491,6 +493,7 @@ export default function ChessApp() {
         setHintActive(false);
         newGame('analysis', 'w', settings.engineDepth);
         stockfish.newGame();
+        stockfish.updateMultiPV(engineLineCount);
         showToast('Switched to Analysis Board');
         break;
       case 'play':
@@ -542,6 +545,7 @@ export default function ChessApp() {
     setPlayElo(config.elo);
     newGame('play', chosenColor, Math.min(18, Math.max(3, Math.round(config.elo / 150))));
     stockfish.newGame();
+    stockfish.updateMultiPV(engineLineCount);
 
     if (config.startFen) {
       loadFEN(config.startFen);
@@ -601,6 +605,7 @@ export default function ChessApp() {
   const handleSelectOpening = (op: Opening) => {
     newGame('analysis', 'w', settings.engineDepth);
     stockfish.newGame();
+    stockfish.updateMultiPV(engineLineCount);
     setSelectedCandidateUci(null);
     setTimeout(() => {
       op.moves.forEach(san => {
@@ -622,6 +627,7 @@ export default function ChessApp() {
     setSelectedCandidateUci(null);
     setHintActive(false);
     stockfish.newGame();
+    stockfish.updateMultiPV(engineLineCount);
     newGame(mode, playerColor, settings.engineDepth);
     showToast('Board reset to starting position');
     setSpeechBubble("✨ Clean slate! What story will we write this time?");
@@ -788,11 +794,11 @@ export default function ChessApp() {
 
   // Multi-color Tactical Arrows & Number Badges in Lumi Master pastel tones
   const isHumanTurn = mode !== 'play' || game.turn() === playerColor;
-  const isPositionCurrent = stockfish.analyzedFen === game.fen();
+  const isPositionCurrent = normalizeFen(stockfish.analyzedFen) === normalizeFen(game.fen());
   const customArrows: Array<{ startSquare: string; endSquare: string; color: string }> = [];
   const arrowBadges: ArrowBadge[] = [];
 
-  if (settings.drawArrows && settings.showAnalysisArrows && !enginePaused && !selectedSquare && isPositionCurrent && isHumanTurn) {
+  if (settings.drawArrows && settings.showAnalysisArrows && !enginePaused && isPositionCurrent && isHumanTurn) {
     if (selectedCandidateUci) {
       const parsed = parseBestMove(selectedCandidateUci);
       if (parsed) {
